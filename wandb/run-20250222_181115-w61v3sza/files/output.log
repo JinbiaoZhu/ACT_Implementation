@@ -1,0 +1,26 @@
+  2%|▋                                        | 99/6000 [00:55<55:30,  1.77it/s]
+Epoch 0 done
+Epoch 1 done
+Epoch 2 done
+Epoch 3 done
+Epoch 4 done
+Epoch 5 done
+Epoch 6 done
+Epoch 7 done
+Epoch 8 done
+Traceback (most recent call last):
+  File "/media/zjb/extend/zjb/pythonCodes/BigymACT/train.py", line 95, in <module>
+    pred_act_seq = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
+  File "/home/zjb/anaconda3/envs/rl310/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/media/zjb/extend/zjb/pythonCodes/BigymACT/network/ACT.py", line 193, in forward
+    representation_encoder_output = self.representation_encoder(representation_encoder_input)
+  File "/home/zjb/anaconda3/envs/rl310/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/media/zjb/extend/zjb/pythonCodes/BigymACT/network/ACT.py", line 57, in forward
+    attn_output = self.attention_list[i](query, key, value, mask)  # tensor, (batch_size, seq_len, d_model)
+  File "/home/zjb/anaconda3/envs/rl310/lib/python3.10/site-packages/torch/nn/modules/module.py", line 1190, in _call_impl
+    return forward_call(*input, **kwargs)
+  File "/media/zjb/extend/zjb/pythonCodes/BigymACT/network/components/attention.py", line 48, in forward
+    attention_scores = torch.matmul(Q, K.transpose(-2, -1))  # (batch_size, heads, seq_len_q, seq_len_k)
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 104.00 MiB (GPU 1; 10.57 GiB total capacity; 8.36 GiB already allocated; 92.12 MiB free; 8.65 GiB reserved in total by PyTorch) If reserved memory is >> allocated memory try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF

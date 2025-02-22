@@ -1,0 +1,10 @@
+{"time":"2025-02-22T18:44:27.762742113+08:00","level":"INFO","msg":"using version","core version":"0.18.6"}
+{"time":"2025-02-22T18:44:27.762785903+08:00","level":"INFO","msg":"created symlink","path":"/media/zjb/extend/zjb/pythonCodes/BigymACT/wandb/run-20250222_184427-c89hh8d9/logs/debug-core.log"}
+{"time":"2025-02-22T18:44:27.878695572+08:00","level":"INFO","msg":"created new stream","id":"c89hh8d9"}
+{"time":"2025-02-22T18:44:27.878769911+08:00","level":"INFO","msg":"stream: started","id":"c89hh8d9"}
+{"time":"2025-02-22T18:44:27.878960389+08:00","level":"INFO","msg":"sender: started","stream_id":"c89hh8d9"}
+{"time":"2025-02-22T18:44:27.878944711+08:00","level":"INFO","msg":"handler: started","stream_id":{"value":"c89hh8d9"}}
+{"time":"2025-02-22T18:44:27.878868742+08:00","level":"INFO","msg":"writer: Do: started","stream_id":{"value":"c89hh8d9"}}
+{"time":"2025-02-22T18:44:28.75795061+08:00","level":"INFO","msg":"Starting system monitor"}
+{"time":"2025-02-22T18:58:21.453081167+08:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/jbzhu1999/Bigym-ACT-Implementation/c89hh8d9/file_stream\": EOF"}
+{"time":"2025-02-22T19:02:37.564097006+08:00","level":"INFO","msg":"api: retrying error","error":"Post \"https://api.wandb.ai/files/jbzhu1999/Bigym-ACT-Implementation/c89hh8d9/file_stream\": write tcp 127.0.0.1:52356->127.0.0.1:7890: write: broken pipe"}

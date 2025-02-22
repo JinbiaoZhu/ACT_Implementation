@@ -1,0 +1,45 @@
+{
+  "os": "Linux-5.15.0-126-generic-x86_64-with-glibc2.31",
+  "python": "3.10.15",
+  "startedAt": "2025-02-22T10:11:15.067416Z",
+  "program": "/media/zjb/extend/zjb/pythonCodes/BigymACT/train.py",
+  "codePath": "train.py",
+  "email": "jbzhu1999@gmail.com",
+  "root": "/media/zjb/extend/zjb/pythonCodes/BigymACT",
+  "host": "agent-Precision-7920-Tower",
+  "username": "zjb",
+  "executable": "/home/zjb/anaconda3/envs/rl310/bin/python",
+  "codePathLocal": "train.py",
+  "cpu_count": 24,
+  "cpu_count_logical": 48,
+  "gpu": "NVIDIA GeForce RTX 2080 Ti",
+  "gpu_count": 2,
+  "disk": {
+    "/": {
+      "total": "502392610816",
+      "used": "414649589760"
+    }
+  },
+  "memory": {
+    "total": "134791757824"
+  },
+  "cpu": {
+    "count": 24,
+    "countLogical": 48
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 2080 Ti",
+      "memoryTotal": "11811160064",
+      "cudaCores": 4352,
+      "architecture": "Turing"
+    },
+    {
+      "name": "NVIDIA GeForce RTX 2080 Ti",
+      "memoryTotal": "11811160064",
+      "cudaCores": 4352,
+      "architecture": "Turing"
+    }
+  ],
+  "cudaVersion": "12.7"
+}
