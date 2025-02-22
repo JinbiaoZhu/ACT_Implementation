@@ -55,12 +55,16 @@ def test_in_simulation(model, args):
                 )
 
                 with torch.no_grad():
-                    pred_act_seq = model(input_image, input_proprio, args, None, None, inference_mode=True)  # (1, chunk_size, action_dim)
-                pred_act_seq = pred_act_seq.squeeze(0).cpu().numpy()  # (chunk_size, action_dim)
+                    pred_act_seq = model(input_image, input_proprio, args, None, None,
+                                         inference_mode=True)  # (1, chunk_size, action_dim)
+                    pred_act_seq = pred_act_seq.squeeze(0).cpu().numpy()  # (chunk_size, action_dim)
 
-                for index in range(1, args.chunk_size + 1):
-                    actually_action = np.sum(pred_act_seq[0: index] * np.array(weight[0: index]), axis=0)
+                    actually_action = pred_act_seq[0]
                     actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
+
+                    # for index in range(1, args.chunk_size + 1):
+                    #     actually_action = np.sum(pred_act_seq[0: index] * np.array(weight[0: index]), axis=0)
+                    #     actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
 
                     observation, reward, terminate, truncation, info = env.step(actually_action)
 
@@ -73,7 +77,7 @@ def test_in_simulation(model, args):
                     if args.render:
                         env.render()
 
-                if step_this_episode >= 1999:
+                if step_this_episode >= 999:
                     break
 
             reward_all_episode.append(reward_this_episode)
@@ -83,3 +87,25 @@ def test_in_simulation(model, args):
         result[name] = sum(reward_all_episode) / len(reward_all_episode)
 
     return result
+
+
+if __name__ == "__main__":
+    from configs.ACT_config import Arguments
+    from network.ACT import ActionChunkTransformer
+
+    act_config = Arguments()
+    model = ActionChunkTransformer(
+        d_model=act_config.d_model,
+        d_proprioception=act_config.d_proprioception,
+        d_action=act_config.d_action,
+        d_z_distribution=act_config.d_z_distribution,
+        num_heads=act_config.num_heads,
+        num_encoder_layers=act_config.num_encoder_layers,
+        num_decoder_layers=act_config.num_decoder_layers,
+        dropout=act_config.dropout,
+        dtype=act_config.dtype,
+        device=act_config.device
+    )
+    model.load_state_dict(torch.load("./ckpts/ACT_202502221900_ReachTargetDual_HeadRGB.pt"))
+    model = model.to(act_config.device)
+    test_in_simulation(model, act_config)
