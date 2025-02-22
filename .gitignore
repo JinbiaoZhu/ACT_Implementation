@@ -185,3 +185,4 @@ fabric.properties
 # .idea
 
 wandb/
+ckpts/
