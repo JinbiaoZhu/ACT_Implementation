@@ -5,7 +5,7 @@ class Arguments:
 
     exp_name = "Bigym-ACT-Implementation"
     exp_day = "202502221900"
-    exp_task = "MoveTwoPlates"  # 与模型保存有关, 训练时应事先看下这个变量
+    exp_task = "ReachTargetDual"  # 与模型保存有关, 训练时应事先看下这个变量
     exp_obs_type = "HeadRGB"  # 这里只使用头部 RGB
     every_valid_step = 100  # 每训练 100 个 batch 就进行一次验证集评估
     every_test_step = 1000  # 每训练 500 个 batch 就进行一次仿真器实际测试

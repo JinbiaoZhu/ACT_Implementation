@@ -20,7 +20,7 @@ def get_slice_demo_dataset():
     demos = []
     # 这里暂定这 4 个任务, 因为只有这 4 个任务是有 pixel-observation 的, 作者有提到未来会完善数据集
     # for cls in [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual]:
-    for cls in [MoveTwoPlates]:
+    for cls in [ReachTargetDual]:
         env = cls(
             action_mode=JointPositionActionMode(floating_base=True, absolute=True),
             control_frequency=control_frequency,

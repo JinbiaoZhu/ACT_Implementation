@@ -16,8 +16,8 @@ def test_in_simulation(model, args):
     for cls, name in zip(
             # [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual],
             # ["move_plate", "move_two_plates", "reach_target_single", "reach_target_dual"]
-            [MoveTwoPlates],
-            ["move_two_plates"]
+            [ReachTargetDual],
+            ["ReachTargetDual"]
     ):
         env = cls(
             action_mode=JointPositionActionMode(floating_base=True, absolute=True),
