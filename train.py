@@ -65,17 +65,19 @@ if __name__ == "__main__":
 
         # 将输入图片/输入本体数据送进 ACT 网络中,
         # 得到预测结果: 预测动作序列
-        pred_act_seq = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
+        pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
 
         # 计算动作序列损失, 然后加权计算总损失并求梯度
         action_seq_loss = F.l1_loss(pred_act_seq, action_seq)
         optimizer.zero_grad()
-        action_seq_loss.backward()
+        (action_seq_loss + act_config.kl_coefficient * z_kl).backward()
         optimizer.step()
 
         wandb_logger.log(
             {
                 "train/action_seq_loss": action_seq_loss.item(),
+                "train/kl_divergence": z_kl.item(),
+                "train/weighted_sum_loss": (action_seq_loss + act_config.kl_coefficient * z_kl).item()
             }, global_step
         )
 
@@ -92,13 +94,15 @@ if __name__ == "__main__":
                 input_proprio = input_proprio.unsqueeze(1).to(act_config.device)
                 action_seq = action_seq.to(act_config.device)
 
-                pred_act_seq = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
+                pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
 
                 action_seq_loss = F.l1_loss(pred_act_seq, action_seq)
 
                 wandb_logger.log(
                     {
                         "validation/action_seq_loss": action_seq_loss.item(),
+                        "validation/kl_divergence": z_kl.item(),
+                        "validation/weighted_sum_loss": (action_seq_loss + act_config.kl_coefficient * z_kl).item()
                     }, global_step
                 )
 

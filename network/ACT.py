@@ -4,11 +4,12 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 from torch.distributions import Normal
+from torch.distributions.kl import kl_divergence
 
 from network.components.attention import Attention
 from network.components.ffnn import FeedForwardNetwork
 from network.components.position_embedding import SinusoidalPositionEmbedding2D, SinusoidalPositionEmbedding1D
-from network.utils.weight_init_tool import weight_init
+from network.components.weight_init_tool import weight_init
 
 
 class ACTBackbone(nn.Module):
@@ -28,7 +29,7 @@ class ACTBackbone(nn.Module):
                 Attention(input_dim=d_model, output_dim=d_model, heads=num_heads).to(device)
             )
             self.ffn_list.append(
-                FeedForwardNetwork(input_dim=d_model, hidden_dim=d_model * 4, output_dim=d_model, dropout=dropout).to(device)
+                FeedForwardNetwork(input_dim=d_model, hidden_dim=d_model * 6, output_dim=d_model, dropout=dropout).to(device)
             )
 
         # 对应的 LayerNorm 层
@@ -110,13 +111,21 @@ class ActionChunkTransformer(nn.Module):
         #    还有一种写法是直接将 [CLS] token 初始化成成维度是 (1, 1, d_model) 的张量, 但是这样写似乎不够直观...
         self.CLS_token_index = torch.tensor([1]).unsqueeze(0).unsqueeze(1).to(device=device, dtype=dtype)
         self.CLS_token_proj = nn.Linear(1, d_model)
+        self.CLS_token_proj.apply(weight_init)
+
         # 2. 将本体数据通过线性层映射到 d_model 维度
         self.proprio_proj = nn.Linear(d_proprioception, d_model)
+        self.proprio_proj.apply(weight_init)
+
         # 3. 将动作序列从动作空间维度映射到 d_model 维度
         self.action_seq_proj = nn.Linear(d_action, d_model)
+        self.action_seq_proj.apply(weight_init)
+
         # 4. 将 Representation Encoder 的 [CLS] token 对应的张量通过线性层计算出 z 分布的均值和方差
         #    一个线性层直接映射出整个均值和方差, 然后再按照维度划分出两个张量
         self.z_mean_std = nn.Linear(d_model, d_z_distribution * 2)
+        self.z_mean_std.apply(weight_init)
+
         # 5. 表征编码器的主体部分
         self.representation_encoder = ACTBackbone(d_model, num_heads, num_encoder_layers, dropout, device)
         self.representation_encoder.to(device)
@@ -128,12 +137,15 @@ class ActionChunkTransformer(nn.Module):
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # 去掉最后的全连接层和池化层
         # 2. 设置特征图映射线性层，用于映射到整个模型的维度 d_model
         self.linear = nn.Linear(512, d_model)  # ResNet18 的输出通道是 512
+        self.linear.apply(weight_init)
         # 3. 设置二维正弦位置嵌入层
         self.position_embedding_2d = SinusoidalPositionEmbedding2D(d_model)
         # 4. 将本体数据通过线性层映射到 d_model 维度
         self.act_propr_proj = nn.Linear(d_proprioception, d_model)
+        self.act_propr_proj.apply(weight_init)
         # 5. 将浅层 z 变量通过线性层映射到 d_model 维度
         self.act_z_proj = nn.Linear(d_z_distribution, d_model)
+        self.act_z_proj.apply(weight_init)
         # 6. ACT 编码器网络部分
         self.ACT_encoder = ACTBackbone(d_model, num_heads, num_encoder_layers, dropout, device)
         self.ACT_encoder.to(device)
@@ -146,18 +158,14 @@ class ActionChunkTransformer(nn.Module):
         self.ACT_decoder.to(device)
         # 3. 设置动作解码网络
         self.action_seq_deproj = nn.Linear(d_model, d_action)
-
-        # =========> 统一做网络权重初始化
-        self.apply(weight_init)
-
-        # =========> 统一将网络的数据格式, 并传送至显卡中
-        self.to(dtype=dtype, device=device)
+        self.action_seq_deproj.apply(weight_init)
 
         # =========> 做一些全局参数的保留
         self.d_z_distribution = d_z_distribution
         self.d_model = d_model
         self.d_action = d_action
         self.device = device
+        self.dtype = dtype
 
     def forward(self, image_t, proprioception_t, args, action_chunk_t_tk=None, mask=None, inference_mode=False):
         """
@@ -177,7 +185,7 @@ class ActionChunkTransformer(nn.Module):
         proprioception_t_for_act = copy.deepcopy(proprioception_t)  # 拷贝一份张量给 ACT 做输入
 
         if inference_mode:
-            z = torch.zeros((batch_size, 1, self.d_z_distribution)).to(dtype=torch.float32, device=self.device)
+            z = torch.zeros((batch_size, 1, self.d_z_distribution)).to(dtype=self.dtype, device=self.device)
         else:
             _, chunk_size, _ = action_chunk_t_tk.shape  # 训练过程和验证过程都要输入动作块
             # =========> 表征编码器前向传播
@@ -201,13 +209,23 @@ class ActionChunkTransformer(nn.Module):
 
             # 取第一个位置, 也就是 [CLS] token 对应的输出的张量作为 z 分布网络输入
             # TODO: 做一个实验测试取最后一个 token 的张量是不是会更好?
+            # 回答: 根据论文 https://arxiv.org/pdf/2304.13705#page=8.86 图片里面取的是也就是 [CLS] token 对应的位置
             z_input = representation_encoder_output[:, 0, :]  # (batch_size, 1, d_model)
 
             # 输入 z_input 获得 z 分布的均值和方差, 并均等 2 分得到各自的均值和方差
             z_mean_and_std = self.z_mean_std(z_input)  # (batch_size, 1, d_z_distribution * 2)
             z_mean, z_std = z_mean_and_std.split(self.d_z_distribution, dim=-1)
             # 训练模式和验证模式用重参数化采样, 仿真器测试模式直接使用 0 向量
-            z = Normal(loc=z_mean, scale=z_std.exp()).rsample()
+            z_distribution = Normal(loc=z_mean, scale=z_std.exp())
+            z = z_distribution.rsample()
+
+            # 这里再额外计算 z 分布与标准正态分布的 KL 散度损失项
+            z_standard_distribution = Normal(
+                loc=torch.zeros_like(z_mean).to(dtype=self.dtype, device=self.device),
+                scale=torch.ones_like(z_std).to(dtype=self.dtype, device=self.device)
+            )
+            z_kl = kl_divergence(z_distribution, z_standard_distribution).mean()
+
 
         # =========> ACT 编码器前向传播
         # 使用 ResNet18 提取特征图
@@ -254,8 +272,7 @@ class ActionChunkTransformer(nn.Module):
         # 获取 1 维度正弦位置编码 (batch_size, chunk_size, d_model)
         action_position_embedding = self.position_embedding_1d(chunk_size).unsqueeze(0).repeat(batch_size, 1, 1)
         # 二者相加作为 ACT 解码器的输入 (batch_size, chunk_size, d_model)
-        act_decoder_input = action_slots + action_position_embedding
-        act_decoder_input = act_decoder_input.to(self.device)
+        act_decoder_input = (action_slots + action_position_embedding).to(self.device)
         act_decoder_output = self.ACT_decoder(act_decoder_input, act_encoder_output, act_encoder_output)
 
         # 将 act_decoder_output 的输出结果映射到实际的动作空间维度中
@@ -264,7 +281,10 @@ class ActionChunkTransformer(nn.Module):
         action_pred = self.action_seq_deproj(act_decoder_output)
         action_pred = action_pred.reshape(batch_size, chunk_size, self.d_action)
 
-        return action_pred  # 完结, 撒花~
+        if inference_mode:
+            return action_pred
+        else:
+            return action_pred, z_kl
 
 # 用于 debug
 # if __name__ == "__main__":

@@ -1,5 +1,7 @@
 import torch.nn as nn
 
+from network.components.weight_init_tool import weight_init
+
 
 class FeedForwardNetwork(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim, dropout=0.1):
@@ -14,8 +16,10 @@ class FeedForwardNetwork(nn.Module):
 
         # 第一层线性变换 (input_dim -> hidden_dim)
         self.fc1 = nn.Linear(input_dim, hidden_dim)
+        self.fc1.apply(weight_init)
         # 第二层线性变换 (hidden_dim -> output_dim)
         self.fc2 = nn.Linear(hidden_dim, output_dim)
+        self.fc2.apply(weight_init)
         # 激活函数
         self.relu = nn.ReLU()
         # Dropout 层，防止过拟合

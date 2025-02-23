@@ -30,10 +30,8 @@ def test_in_simulation(model, args):
 
         reward_all_episode = []
 
-        weight = np.exp(-1 * args.inference_coefficient * np.arange(args.chunk_size).reshape(-1, 1)).tolist()
-
         for _ in tqdm(range(args.test_episode)):
-            observation, info = env.reset()
+            env.reset()
             action = env.action_space.sample()
             observation, reward, terminate, truncation, info = env.step(action)
             reward_this_episode, step_this_episode = 0, 0
@@ -55,27 +53,23 @@ def test_in_simulation(model, args):
                 )
 
                 with torch.no_grad():
-                    pred_act_seq = model(input_image, input_proprio, args, None, None,
-                                         inference_mode=True)  # (1, chunk_size, action_dim)
-                    pred_act_seq = pred_act_seq.squeeze(0).cpu().numpy()  # (chunk_size, action_dim)
+                    # (1, chunk_size, action_dim)
+                    pred_act_seq = model(input_image, input_proprio, args, None, None, inference_mode=True)
 
-                    actually_action = pred_act_seq[0]
-                    actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
+                pred_act_seq = pred_act_seq.squeeze(0).cpu().numpy()  # (chunk_size, action_dim)
+                actually_action = pred_act_seq[0]
+                actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
 
-                    # for index in range(1, args.chunk_size + 1):
-                    #     actually_action = np.sum(pred_act_seq[0: index] * np.array(weight[0: index]), axis=0)
-                    #     actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
+                observation, reward, terminate, truncation, info = env.step(actually_action)
 
-                    observation, reward, terminate, truncation, info = env.step(actually_action)
+                reward_this_episode += reward
+                step_this_episode += 1
 
-                    reward_this_episode += reward
-                    step_this_episode += 1
+                if terminate or truncation:
+                    break
 
-                    if terminate or truncation:
-                        break
-
-                    if args.render:
-                        env.render()
+                if args.render:
+                    env.render()
 
                 if step_this_episode >= 999:
                     break

@@ -4,7 +4,7 @@ import torch
 class Arguments:
 
     exp_name = "Bigym-ACT-Implementation"
-    exp_day = "202502221900"
+    exp_day = "202502231548"
     exp_task = "ReachTargetDual"  # 与模型保存有关, 训练时应事先看下这个变量
     exp_obs_type = "HeadRGB"  # 这里只使用头部 RGB
     every_valid_step = 100  # 每训练 100 个 batch 就进行一次验证集评估
@@ -13,7 +13,7 @@ class Arguments:
     device = "cuda:1"  # 单卡情况下 "cuda:0" 或者 "cpu"
     record_video = False  # 默认不录制视频
     record_video_path = "/media/zjb/extend/zjb/pythonCodes/BigymACT/videos/"  # 如果录制视频, 应该放置的文件位置
-    render = True  # False  # 默认不开渲染模式
+    render = False  # False  # 默认不开渲染模式
 
     d_model = 512  # Transformer 模型的维度
     d_proprioception = 66  # Bigym 仿真器机器人本体维度, 需要事先知道并手动填写
@@ -35,6 +35,7 @@ class Arguments:
     valid_split = 0.2  # 训/验比是 9:1 且直接在仿真环境中部署做测试
     batch_size = 32  # 因为图片很小, 所以 batch_size 可以调大一点
     num_step = 10000  # 每一个 step 表示一个 batch 做一次梯度下降
+    kl_coefficient = 0.1  # 训练损失函数项中 KL 散度的权重
 
 
 

@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+from network.components.weight_init_tool import weight_init
+
 
 class Attention(nn.Module):
     def __init__(self, input_dim, output_dim, heads):
@@ -20,6 +22,11 @@ class Attention(nn.Module):
         self.key_linear = nn.Linear(input_dim, output_dim * heads)
         self.value_linear = nn.Linear(input_dim, output_dim * heads)
         self.out_linear = nn.Linear(output_dim * heads, output_dim)
+
+        self.query_linear.apply(weight_init)
+        self.key_linear.apply(weight_init)
+        self.value_linear.apply(weight_init)
+        self.out_linear.apply(weight_init)
 
     def forward(self, query, key, value, mask=None):
         """
