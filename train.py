@@ -46,7 +46,7 @@ if __name__ == "__main__":
     )
 
     # 创建记录器
-    wandb_logger = WandbLogger(project_name=act_config.exp_name, config=get_config_dict(act_config))
+    wandb_logger = WandbLogger(project_name=act_config.exp_name, config=get_config_dict(Arguments))
 
     # 开始训练进程
     for global_step in tqdm(range(1, act_config.num_step + 1)):

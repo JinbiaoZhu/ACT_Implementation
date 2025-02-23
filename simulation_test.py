@@ -31,9 +31,9 @@ def test_in_simulation(model, args):
         reward_all_episode = []
 
         for _ in tqdm(range(args.test_episode)):
-            env.reset()
-            action = env.action_space.sample()
-            observation, reward, terminate, truncation, info = env.step(action)
+            observation, info = env.reset()
+            # action = env.action_space.sample()
+            # observation, reward, terminate, truncation, info = env.step(action)
             reward_this_episode, step_this_episode = 0, 0
             while True:
                 input_image = observation["rgb_head"]  # np.ndarray (3, 84, 84)
@@ -100,6 +100,6 @@ if __name__ == "__main__":
         dtype=act_config.dtype,
         device=act_config.device
     )
-    model.load_state_dict(torch.load("./ckpts/ACT_202502221900_ReachTargetDual_HeadRGB.pt"))
+    model.load_state_dict(torch.load("./ckpts/ACT_202502231640_ReachTargetDual_HeadRGB.pt"))
     model = model.to(act_config.device)
     test_in_simulation(model, act_config)
