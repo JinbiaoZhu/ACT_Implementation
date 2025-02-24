@@ -1,20 +1,28 @@
 from tqdm import tqdm
-
-from configs.ACT_config import Arguments
-from network.ACT import ActionChunkTransformer
-from dataset import get_dataset, CustomDataset, transform
-from tools import repeater, get_config_dict
-from logger import WandbLogger
-from simulation_test import test_in_simulation
+import random
 
 import torch
 from torch.utils.data import DataLoader
 import torch.nn.functional as F
+import numpy as np
+
+from configs.ACT_maniskill_config import Arguments
+from network.ACT import ActionChunkTransformer
+from _maniskill_dataset import get_dataset, CustomDataset, transform
+from tools import repeater, get_config_dict, make_eval_envs
+from logger import WandbLogger
+from _maniskill_simulation_test import test_in_simulation
 
 if __name__ == "__main__":
 
     # 参数
     act_config = Arguments()
+
+    # 设置随机数种子
+    random.seed(act_config.seed)
+    np.random.seed(act_config.seed)
+    torch.manual_seed(act_config.seed)
+    torch.backends.cudnn.deterministic = act_config.torch_deterministic
 
     # 模型
     model = ActionChunkTransformer(
@@ -94,7 +102,8 @@ if __name__ == "__main__":
                 input_proprio = input_proprio.unsqueeze(1).to(act_config.device)
                 action_seq = action_seq.to(act_config.device)
 
-                pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
+                pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None,
+                                           inference_mode=False)
 
                 action_seq_loss = F.l1_loss(pred_act_seq, action_seq)
 

@@ -84,7 +84,7 @@ def test_in_simulation(model, args):
 
 
 if __name__ == "__main__":
-    from configs.ACT_config import Arguments
+    from configs.ACT_bigym_config import Arguments
     from network.ACT import ActionChunkTransformer
 
     act_config = Arguments()
