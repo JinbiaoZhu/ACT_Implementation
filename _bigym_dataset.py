@@ -5,9 +5,10 @@ import numpy as np
 from torch.utils.data import Dataset
 from torchvision.transforms import transforms
 
-from bigym.action_modes import JointPositionActionMode
+from bigym.action_modes import JointPositionActionMode, TorqueActionMode, PelvisDof
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
+from bigym.envs.pick_and_place import PickBox
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from demonstrations.demo_store import DemoStore
 from demonstrations.utils import Metadata
@@ -18,13 +19,19 @@ from buffer import ReplayBuffer
 def get_slice_demo_dataset():
     control_frequency = 50
     demos = []
-    # 这里暂定这 4 个任务, 因为只有这 4 个任务是有 pixel-observation 的, 作者有提到未来会完善数据集
     # for cls in [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual]:
-    for cls in [ReachTargetDual]:
+    for cls in [PickBox]:
         env = cls(
-            action_mode=JointPositionActionMode(floating_base=True, absolute=True),
+            action_mode=JointPositionActionMode(
+                floating_base=True,
+                absolute=True,
+                floating_dofs=[PelvisDof.X, PelvisDof.Y, PelvisDof.Z, PelvisDof.RZ]
+            ),  # 环境的设置需要依靠数据集来定！
+            # action_mode=TorqueActionMode(True),
             control_frequency=control_frequency,
-            observation_config=ObservationConfig(cameras=[CameraConfig("head", resolution=(84, 84))]),
+            observation_config=ObservationConfig(
+                cameras=[CameraConfig("head", resolution=(84, 84))]
+            ),
             render_mode="human",
         )
         metadata = Metadata.from_env(env)
@@ -146,3 +153,6 @@ transform = transforms.Compose([
     transforms.ToTensor(),
     # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
+
+
+print(get_slice_demo_dataset())

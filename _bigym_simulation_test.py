@@ -3,10 +3,11 @@ from tqdm import tqdm
 import numpy as np
 import torch
 from gymnasium.wrappers.record_video import RecordVideo
-from bigym.action_modes import JointPositionActionMode
+from bigym.action_modes import JointPositionActionMode, PelvisDof
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
+from bigym.envs.pick_and_place import PickBox
 
 
 def test_in_simulation(model, args):
@@ -16,13 +17,20 @@ def test_in_simulation(model, args):
     for cls, name in zip(
             # [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual],
             # ["move_plate", "move_two_plates", "reach_target_single", "reach_target_dual"]
-            [ReachTargetDual],
-            ["ReachTargetDual"]
+            [PickBox],
+            ["PickBox"]
     ):
         env = cls(
-            action_mode=JointPositionActionMode(floating_base=True, absolute=True),
+            action_mode=JointPositionActionMode(
+                floating_base=True,
+                absolute=True,
+                floating_dofs=[PelvisDof.X, PelvisDof.Y, PelvisDof.Z, PelvisDof.RZ]
+            ),  # 环境的设置需要依靠数据集来定！
+            # action_mode=TorqueActionMode(True),
             control_frequency=control_frequency,
-            observation_config=ObservationConfig(cameras=[CameraConfig("head", resolution=(84, 84))]),
+            observation_config=ObservationConfig(
+                cameras=[CameraConfig("head", resolution=(84, 84))]
+            ),
             render_mode="human",
         )
         if args.record_video:

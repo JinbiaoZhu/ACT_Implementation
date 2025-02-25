@@ -87,3 +87,9 @@ python _maniskill_train.py
 我把一些跑的结果记录到了 Wandb 的项目中，[ Bigym 效果](https://api.wandb.ai/links/jbzhu1999/synai50l)和[ Maniskill 效果](https://wandb.ai/jbzhu1999/Maniskill-ACT-Implementation/overview)。
 
 欢迎师弟师妹 clone 这个包然后魔改代码看看在其他任务（甚至非 Bigym / Maniskill 环境上也可以尝试跑跑哦）是否有更好的效果，加油。 
+
+# 6. 施工报告
+
+====> 20250225 下午：阅读 Bigym 的底层代码知道了 lightweight 数据集怎么转换成带有图片观测的数据，并对代码做了修改。
+====> 20250225 上午：按照老板的期望添加了槽注意力模型，槽注意力模型似乎并没有起到很大作用...
+====> 20250224 下午：把 Mani-Skill 环境融进我的代码了，跑了几轮效果。

@@ -4,7 +4,7 @@ import torch
 class Arguments:
 
     exp_name = "Maniskill-ACT-Implementation"
-    exp_day = "202502250840"
+    exp_day = "202502251330"
     exp_task = "PickCube-v1"  # 与模型保存有关, 训练时应事先看下这个变量
     exp_obs_type = "slot_RGB"  # 这里只使用头部 RGB
     every_valid_step = 100  # 每训练 100 个 batch 就进行一次验证集评估
@@ -14,11 +14,11 @@ class Arguments:
     record_video = False  # 默认不录制视频
     record_video_path = "/media/zjb/extend/zjb/pythonCodes/BigymACT/videos/"  # 如果录制视频, 应该放置的文件位置
     render = False  # False  # 默认不开渲染模式
-    seed = 0  # 设置全局随机数种子
+    seed = 1  # 设置全局随机数种子
     torch_deterministic = True  # 置为 True 的话, 每次返回的卷积算法将是确定的, 即默认算法
 
     demo_path = "/home/zjb/.maniskill/demos/PickCube-v1/motionplanning/trajectory.rgb.pd_ee_delta_pos.physx_cpu.h5"
-    num_queries = 500
+    num_queries = 1000
     with_goal = True
 
     d_model = 512  # Transformer 模型的维度
@@ -29,14 +29,14 @@ class Arguments:
     num_heads = 8  # 自注意力的头数
     num_encoder_layers = 4  # 编码器的堆叠层数
     num_decoder_layers = 7  # 解码器的堆叠层数
-    num_slots = 3
+    num_slots = 8
     dropout = 0.1  # 正则化率
 
     inference_coefficient = 0.5  # 推理时候的指数系数权重
     chunk_size = 50  # 预测的动作块数量
     test_episode = 14  # 模型训练时放置于仿真环境测试的 episode 数
     context_length = 50  # 模型未来动作的步数, ACT 论文是 100 ,这里用 50 可以增加数据集数量
-    lr = 2e-4  # 全局模型学习率
+    lr = 1e-3  # 全局模型学习率
     lr_min = 1e-5  # 使用学习率调度器时模型学习率降低的最小值
     scale = 150  # 每条轨迹中采样的数据样本条数
     train_split = 0.8  # 训/验比是 9:1 且直接在仿真环境中部署做测试
