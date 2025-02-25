@@ -6,14 +6,18 @@ from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import numpy as np
 
-from configs.ACT_maniskill_config import Arguments
-from network.ACT import ActionChunkTransformer
+from configs.ACT_slot_maniskill_config import Arguments
+from network.ACT_slot import SlotBasedActionChunkTransformer
 from _maniskill_dataset import get_dataset, CustomDataset, transform
 from tools import repeater, get_config_dict, make_eval_envs
 from logger import WandbLogger
 from _maniskill_simulation_test import test_in_simulation
 
 if __name__ == "__main__":
+
+    """
+    这个脚本用于测试加了槽注意力的 ACT 的效果
+    """
 
     # 参数
     act_config = Arguments()
@@ -25,7 +29,7 @@ if __name__ == "__main__":
     torch.backends.cudnn.deterministic = act_config.torch_deterministic
 
     # 模型
-    model = ActionChunkTransformer(
+    model = SlotBasedActionChunkTransformer(
         d_model=act_config.d_model,
         d_proprioception=act_config.d_proprioception if not act_config.with_goal else act_config.d_proprioception + act_config.d_goal_pos,
         d_action=act_config.d_action,
@@ -33,6 +37,7 @@ if __name__ == "__main__":
         num_heads=act_config.num_heads,
         num_encoder_layers=act_config.num_encoder_layers,
         num_decoder_layers=act_config.num_decoder_layers,
+        num_slots=act_config.num_slots,
         dropout=act_config.dropout,
         dtype=act_config.dtype,
         device=act_config.device

@@ -6,7 +6,7 @@ import torchvision.models as models
 from torch.distributions import Normal
 from torch.distributions.kl import kl_divergence
 
-from network.components.attention import Attention
+from network.components.attention import Attention, SlotAttention
 from network.components.ffnn import FeedForwardNetwork
 from network.components.position_embedding import SinusoidalPositionEmbedding2D, SinusoidalPositionEmbedding1D
 from network.components.weight_init_tool import weight_init
@@ -64,7 +64,7 @@ class ACTBackbone(nn.Module):
         return query
 
 
-class ActionChunkTransformer(nn.Module):
+class SlotBasedActionChunkTransformer(nn.Module):
     """
     # The Representation Encoder's input
     The input to the encoder are
@@ -96,9 +96,9 @@ class ActionChunkTransformer(nn.Module):
     """
 
     def __init__(self, d_model, d_proprioception, d_action, d_z_distribution,
-                 num_heads, num_encoder_layers, num_decoder_layers, dropout,
+                 num_heads, num_encoder_layers, num_decoder_layers, num_slots, dropout,
                  dtype, device):
-        super(ActionChunkTransformer, self).__init__()
+        super(SlotBasedActionChunkTransformer, self).__init__()
 
         # 这里做一些简单的输入变量检查和变换
         assert d_z_distribution % 2 == 0, "d_z_distribution 维度必须是偶数, 建议 64, 128, ..."
@@ -135,17 +135,26 @@ class ActionChunkTransformer(nn.Module):
         #    参考链接: https://pytorch-cn.readthedocs.io/zh/latest/torchvision/torchvision-models/
         self.resnet = models.resnet18(pretrained=True)
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # 去掉最后的全连接层和池化层
+
         # 2. 设置特征图映射线性层，用于映射到整个模型的维度 d_model
         self.linear = nn.Linear(512, d_model)  # ResNet18 的输出通道是 512
         self.linear.apply(weight_init)
+
         # 3. 设置二维正弦位置嵌入层
         self.position_embedding_2d = SinusoidalPositionEmbedding2D(d_model)
+
+        # 3. 设置基于槽的注意力机制, 对输入图片的 token 占用数降维, 如何降维可看 forward 方法实现
+        self.slot_attention = SlotAttention(num_slots, d_model)
+        self.slot_attention.to(device=device)
+
         # 4. 将本体数据通过线性层映射到 d_model 维度
         self.act_propr_proj = nn.Linear(d_proprioception, d_model)
         self.act_propr_proj.apply(weight_init)
+
         # 5. 将浅层 z 变量通过线性层映射到 d_model 维度
         self.act_z_proj = nn.Linear(d_z_distribution, d_model)
         self.act_z_proj.apply(weight_init)
+
         # 6. ACT 编码器网络部分
         self.ACT_encoder = ACTBackbone(d_model, num_heads, num_encoder_layers, dropout, device)
         self.ACT_encoder.to(device)
@@ -248,6 +257,10 @@ class ActionChunkTransformer(nn.Module):
         # 还原成本质维度 (batch_size, seq_len_image * height_32 * width_32, d_model)
         feature_map = feature_map.reshape(batch_size, seq_len_image * height_32 * width_32, self.d_model)
 
+        # ======> 使用槽模型把 seq_len_image * height_32 * width_32 降低成 num_slots
+        # (batch_size, num_slots, d_model)
+        feature_map = self.slot_attention(feature_map)
+
         # 将本体数据做映射
         proprioception_t_for_act = proprioception_t_for_act.reshape(batch_size * 1, -1)
         proprioception_t_for_act = self.act_propr_proj(proprioception_t_for_act)
@@ -288,11 +301,18 @@ class ActionChunkTransformer(nn.Module):
 
 # 用于 debug
 # if __name__ == "__main__":
+#
+#     class Args:
+#
+#         chunk_size = 66
+#
+#     args = Args()
+#
 #     batch_size, seq_len_image, channel, height, width, proprioception_dim, action_dim = 32, 4, 3, 84, 84, 66, 15
 #     image_t = torch.rand((batch_size, seq_len_image, channel, height, width))
 #     proprioception_t = torch.rand((batch_size, 1, proprioception_dim))
-#     action_chunk_t_tk = torch.rand((batch_size, 35, action_dim))
-#     model = ActionChunkTransformer(512, proprioception_dim, action_dim, 256, 8, 3, 7, 0.1, torch.float32, "cpu")
-#     action_pred = model(image_t, proprioception_t, action_chunk_t_tk)
+#     action_chunk_t_tk = torch.rand((batch_size, args.chunk_size, action_dim))
+#     model = SlotBasedActionChunkTransformer(512, proprioception_dim, action_dim, 256, 8, 3, 7, 3,0.1, torch.float32, "cpu")
+#     action_pred, z_kl = model(image_t, proprioception_t, args, action_chunk_t_tk, None, False)
 #     print(action_chunk_t_tk.shape)
 #     print(action_pred.shape)

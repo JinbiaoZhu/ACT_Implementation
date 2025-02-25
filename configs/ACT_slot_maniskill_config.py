@@ -6,11 +6,11 @@ class Arguments:
     exp_name = "Maniskill-ACT-Implementation"
     exp_day = "202502250840"
     exp_task = "PickCube-v1"  # 与模型保存有关, 训练时应事先看下这个变量
-    exp_obs_type = "RGB"  # 这里只使用头部 RGB
+    exp_obs_type = "slot_RGB"  # 这里只使用头部 RGB
     every_valid_step = 100  # 每训练 100 个 batch 就进行一次验证集评估
     every_test_step = 1000  # 每训练 500 个 batch 就进行一次仿真器实际测试
     dtype = torch.float32
-    device = "cuda:0"  # 单卡情况下 "cuda:0" 或者 "cpu"
+    device = "cuda:1"  # 单卡情况下 "cuda:0" 或者 "cpu"
     record_video = False  # 默认不录制视频
     record_video_path = "/media/zjb/extend/zjb/pythonCodes/BigymACT/videos/"  # 如果录制视频, 应该放置的文件位置
     render = False  # False  # 默认不开渲染模式
@@ -29,6 +29,7 @@ class Arguments:
     num_heads = 8  # 自注意力的头数
     num_encoder_layers = 4  # 编码器的堆叠层数
     num_decoder_layers = 7  # 解码器的堆叠层数
+    num_slots = 3
     dropout = 0.1  # 正则化率
 
     inference_coefficient = 0.5  # 推理时候的指数系数权重

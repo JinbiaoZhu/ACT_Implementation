@@ -22,6 +22,8 @@ def get_demo_dataset(args):
         # 定义经验回放池, 也就是存储状态转移的容器 (s, a, r, s', r, d) , 实际数据集从这里索引即可！
         rb = ReplayBuffer(
             proprioception_shape=(
+                single_obs_traj["agent"]["qpos"].shape[1] + single_obs_traj["agent"]["qvel"].shape[1] + single_obs_traj["extra"]["goal_pos"].shape[1],
+            ) if args.with_goal else (
                 single_obs_traj["agent"]["qpos"].shape[1] + single_obs_traj["agent"]["qvel"].shape[1],
             ),
             obs_shape=(3, 128, 128),
@@ -32,14 +34,24 @@ def get_demo_dataset(args):
 
         # 对每一条轨迹提取单步状态转移
         for t in range(1, single_obs_traj["agent"]["qpos"].shape[0]):
-            pro = np.concatenate(
-                [single_obs_traj["agent"]["qpos"][t - 1, :], single_obs_traj["agent"]["qvel"][t - 1, :]], 0
-            )
+            if args.with_goal:
+                pro = np.concatenate(
+                    [single_obs_traj["agent"]["qpos"][t - 1, :], single_obs_traj["agent"]["qvel"][t - 1, :], single_obs_traj["extra"]["goal_pos"][t - 1, :]], 0
+                )
+            else:
+                pro = np.concatenate(
+                    [single_obs_traj["agent"]["qpos"][t - 1, :], single_obs_traj["agent"]["qvel"][t - 1, :]], 0
+                )
             obs = single_obs_traj["sensor_data"]["base_camera"]["rgb"][t - 1].reshape((3, 128, 128))
             action = single_act_traj[t - 1]
-            next_pro = np.concatenate(
-                [single_obs_traj["agent"]["qpos"][t, :], single_obs_traj["agent"]["qvel"][t, :]], axis=0
-            )
+            if args.with_goal:
+                next_pro = np.concatenate(
+                    [single_obs_traj["agent"]["qpos"][t, :], single_obs_traj["agent"]["qvel"][t, :], single_obs_traj["extra"]["goal_pos"][t - 1, :]], axis=0
+                )
+            else:
+                next_pro = np.concatenate(
+                    [single_obs_traj["agent"]["qpos"][t, :], single_obs_traj["agent"]["qvel"][t, :]], axis=0
+                )
             next_obs = single_obs_traj["sensor_data"]["base_camera"]["rgb"][t].reshape((3, 128, 128))
             # done = demo.timesteps[t].termination or demo.timesteps[t].truncation
             rb.add(pro, obs, action, 0.0, next_pro, next_obs, 0.0)
@@ -128,6 +140,7 @@ if __name__ == "__main__":
         train_split = 0.8  # 训/验比是 9:1 且直接在仿真环境中部署做测试
         valid_split = 0.2
         context_length = 10
+        with_goal = False
 
 
     args = Args()

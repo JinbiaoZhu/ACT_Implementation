@@ -28,7 +28,10 @@ def test_in_simulation(model, args):
         # observation, reward, terminate, truncation, info = env.step(action)
         reward_this_episode, step_this_episode = 0, 0
         while True:
-            input_proprio = np.concatenate([observation["agent"]["qpos"], observation["agent"]["qvel"]], 1)
+            if args.with_goal:
+                input_proprio = np.concatenate([observation["agent"]["qpos"], observation["agent"]["qvel"], observation["extra"]["goal_pos"]], 1)
+            else:
+                input_proprio = np.concatenate([observation["agent"]["qpos"], observation["agent"]["qvel"]], 1)
             input_image = observation["sensor_data"]["base_camera"]["rgb"].reshape((3, 128, 128))
             input_image = input_image.unsqueeze(0).unsqueeze(0).to(dtype=args.dtype, device=args.device)
             input_proprio = torch.from_numpy(input_proprio).unsqueeze(0).to(dtype=args.dtype, device=args.device)
