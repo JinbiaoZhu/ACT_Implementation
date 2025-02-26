@@ -187,3 +187,5 @@ fabric.properties
 wandb/
 ckpts/
 Geely_project/
+/_my_project_train.py
+/configs/ACT_geely_config.py

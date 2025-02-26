@@ -4,8 +4,8 @@ import torch
 class Arguments:
 
     exp_name = "Bigym-ACT-Implementation"
-    exp_day = "202502231640"
-    exp_task = "PickBox"  # 与模型保存有关, 训练时应事先看下这个变量
+    exp_day = "202502260840"
+    exp_task = "StackBlocks"  # 与模型保存有关, 训练时应事先看下这个变量
     exp_obs_type = "HeadRGB"  # 这里只使用头部 RGB
     every_valid_step = 100  # 每训练 100 个 batch 就进行一次验证集评估
     every_test_step = 1000  # 每训练 500 个 batch 就进行一次仿真器实际测试
@@ -36,7 +36,7 @@ class Arguments:
     train_split = 0.8  # 训/验比是 9:1 且直接在仿真环境中部署做测试
     valid_split = 0.2  # 训/验比是 9:1 且直接在仿真环境中部署做测试
     batch_size = 32  # 因为图片很小, 所以 batch_size 可以调大一点
-    num_step = 10000  # 每一个 step 表示一个 batch 做一次梯度下降
+    num_step = 20000  # 每一个 step 表示一个 batch 做一次梯度下降
     kl_coefficient = 10  # 训练损失函数项中 KL 散度的权重
 
 

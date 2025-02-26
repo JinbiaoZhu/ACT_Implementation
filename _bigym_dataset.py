@@ -8,6 +8,7 @@ from torchvision.transforms import transforms
 from bigym.action_modes import JointPositionActionMode, TorqueActionMode, PelvisDof
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
+from bigym.envs.manipulation import StackBlocks
 from bigym.envs.pick_and_place import PickBox
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from demonstrations.demo_store import DemoStore
@@ -20,7 +21,7 @@ def get_slice_demo_dataset():
     control_frequency = 50
     demos = []
     # for cls in [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual]:
-    for cls in [PickBox]:
+    for cls in [StackBlocks]:
         env = cls(
             action_mode=JointPositionActionMode(
                 floating_base=True,

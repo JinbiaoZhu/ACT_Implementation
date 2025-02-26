@@ -7,6 +7,7 @@ from bigym.action_modes import JointPositionActionMode, PelvisDof
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
+from bigym.envs.manipulation import StackBlocks
 from bigym.envs.pick_and_place import PickBox
 
 
@@ -17,8 +18,8 @@ def test_in_simulation(model, args):
     for cls, name in zip(
             # [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual],
             # ["move_plate", "move_two_plates", "reach_target_single", "reach_target_dual"]
-            [PickBox],
-            ["PickBox"]
+            [StackBlocks],
+            ["StackBlocks"]
     ):
         env = cls(
             action_mode=JointPositionActionMode(
