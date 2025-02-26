@@ -66,17 +66,30 @@ if __name__ == "__main__":
         # 输入图片/输入本体数据扩充一维度, 与动作序列对齐, 表示是一个 "token"
         # 把提取到的数据全部放到指定显卡中
         batch = next(training_dataloader)
-        input_image, input_proprio, action_seq = batch
+        input_image, input_proprio, action_seq, pad_length = batch
         input_image = input_image.unsqueeze(1).to(act_config.device)
         input_proprio = input_proprio.unsqueeze(1).to(act_config.device)
-        action_seq = action_seq.to(act_config.device)
+        action_seq = action_seq.to(device=act_config.device, dtype=torch.float32)
+
+        current_batch_size = input_image.shape[0]
 
         # 将输入图片/输入本体数据送进 ACT 网络中,
         # 得到预测结果: 预测动作序列
         pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None, inference_mode=False)
 
-        # 计算动作序列损失, 然后加权计算总损失并求梯度
-        action_seq_loss = F.l1_loss(pred_act_seq, action_seq)
+        # 对原本动作序列进行截断操作 ====> 这是因为存在一部分用数值 0 填充!
+        action_seq_truncated = [
+            action_seq[i, :act_config.chunk_size - pad_length[i].item()] for i in range(current_batch_size)
+        ]
+        # 对预测动作序列进行截断操作 ====> 要与标签动作序列一致才可以算损失!
+        pred_act_seq_truncated = [
+            pred_act_seq[i, :act_config.chunk_size - pad_length[i].item()] for i in range(current_batch_size)
+        ]
+
+        # 计算动作序列损失, 然后计算总损失, 求平均值, 再求梯度
+        action_seq_loss = sum(
+            [F.l1_loss(pred_act_seq_truncated[i], action_seq_truncated[i]) for i in range(current_batch_size)]
+        ) / current_batch_size
         optimizer.zero_grad()
         (action_seq_loss + act_config.kl_coefficient * z_kl).backward()
         optimizer.step()
@@ -97,15 +110,29 @@ if __name__ == "__main__":
                 # 从 batch 数据中提取: 输入图片/输入本体数据/标签动作序列
                 # 输入图片/输入本体数据扩充一维度, 与动作序列对齐, 表示是一个 "token"
                 # 把提取到的数据全部放到指定显卡中
-                input_image, input_proprio, action_seq = batch
+                input_image, input_proprio, action_seq, pad_length = batch
                 input_image = input_image.unsqueeze(1).to(act_config.device)
                 input_proprio = input_proprio.unsqueeze(1).to(act_config.device)
-                action_seq = action_seq.to(act_config.device)
+                action_seq = action_seq.to(device=act_config.device, dtype=torch.float32)
+
+                current_batch_size = input_image.shape[0]
 
                 pred_act_seq, z_kl = model(input_image, input_proprio, act_config, action_seq, None,
                                            inference_mode=False)
 
-                action_seq_loss = F.l1_loss(pred_act_seq, action_seq)
+                # 对原本动作序列进行截断操作 ====> 这是因为存在一部分用数值 0 填充!
+                action_seq_truncated = [
+                    action_seq[i, :act_config.chunk_size - pad_length[i].item()] for i in range(current_batch_size)
+                ]
+                # 对预测动作序列进行截断操作 ====> 要与标签动作序列一致才可以算损失!
+                pred_act_seq_truncated = [
+                    pred_act_seq[i, :act_config.chunk_size - pad_length[i].item()] for i in range(current_batch_size)
+                ]
+
+                # 计算动作序列损失, 然后计算总损失, 先求平均值再求梯度
+                action_seq_loss = sum(
+                    [F.l1_loss(pred_act_seq_truncated[i], action_seq_truncated[i]) for i in range(current_batch_size)]
+                ) / current_batch_size
 
                 wandb_logger.log(
                     {
