@@ -8,7 +8,7 @@ import numpy as np
 
 from configs.ACT_maniskill_config import Arguments
 from network.ACT import ActionChunkTransformer
-from _maniskill_dataset import get_dataset, CustomDataset, transform
+from _maniskill_dataset import get_dataset, CustomDataset, training_transform, validation_transform
 from tools import repeater, get_config_dict, make_eval_envs
 from logger import WandbLogger
 from _maniskill_simulation_test import test_in_simulation
@@ -40,9 +40,9 @@ if __name__ == "__main__":
 
     # 数据集
     training_set, valid_set = get_dataset(act_config)
-    training_dataset = CustomDataset(training_set, transform)
+    training_dataset = CustomDataset(training_set, training_transform)
     training_dataloader = DataLoader(training_dataset, batch_size=act_config.batch_size, shuffle=True)
-    validation_dataset = CustomDataset(valid_set, transform)
+    validation_dataset = CustomDataset(valid_set, validation_transform)  # 验证集就不做数据集增强了, 纯粹的 totensor
     validation_dataloader = DataLoader(validation_dataset, batch_size=act_config.batch_size, shuffle=True)
     # 优化训练的 DataLoader 便于更好的训练
     training_dataloader = repeater(training_dataloader)
@@ -90,8 +90,12 @@ if __name__ == "__main__":
         action_seq_loss = sum(
             [F.l1_loss(pred_act_seq_truncated[i], action_seq_truncated[i]) for i in range(current_batch_size)]
         ) / current_batch_size
+
+        # 额外增加一个损失函数项, 就是优化 kl 散度, 让 kl 散度下降但是不能过于下降 (小于 1e-5 会产生不好的效果)
+        kl_loss = F.l1_loss(z_kl, torch.tensor(3e-4).to(dtype=act_config.dtype, device=act_config.device))
+
         optimizer.zero_grad()
-        (action_seq_loss + act_config.kl_coefficient * z_kl).backward()
+        (action_seq_loss + act_config.kl_coefficient * kl_loss).backward()
         optimizer.step()
 
         wandb_logger.log(

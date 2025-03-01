@@ -8,6 +8,7 @@ from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
 from bigym.envs.manipulation import StackBlocks
+from bigym.envs.dishwasher import DishwasherClose
 from bigym.envs.pick_and_place import PickBox
 
 
@@ -18,8 +19,8 @@ def test_in_simulation(model, args):
     for cls, name in zip(
             # [MovePlate, MoveTwoPlates, ReachTargetSingle, ReachTargetDual],
             # ["move_plate", "move_two_plates", "reach_target_single", "reach_target_dual"]
-            [StackBlocks],
-            ["StackBlocks"]
+            [DishwasherClose],
+            ["DishwasherClose"]
     ):
         env = cls(
             action_mode=JointPositionActionMode(
@@ -109,6 +110,6 @@ if __name__ == "__main__":
         dtype=act_config.dtype,
         device=act_config.device
     )
-    model.load_state_dict(torch.load("./ckpts/ACT_202502231640_ReachTargetDual_HeadRGB.pt"))
+    model.load_state_dict(torch.load("./ckpts/ACT_202502280950_DishwasherClose_HeadRGB.pt"))
     model = model.to(act_config.device)
     test_in_simulation(model, act_config)

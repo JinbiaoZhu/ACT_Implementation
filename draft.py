@@ -1,3 +1,3 @@
-import random
+import numpy as np
 
-print(random.sample(range(10), 10))
+print(np.array([[1]]).shape)

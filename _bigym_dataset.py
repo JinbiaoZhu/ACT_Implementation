@@ -10,6 +10,7 @@ from bigym.action_modes import JointPositionActionMode, TorqueActionMode, Pelvis
 from bigym.envs.move_plates import MovePlate, MoveTwoPlates
 from bigym.envs.reach_target import ReachTargetSingle, ReachTargetDual
 from bigym.envs.manipulation import StackBlocks
+from bigym.envs.dishwasher import DishwasherClose
 from bigym.envs.pick_and_place import PickBox
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from demonstrations.demo_store import DemoStore
@@ -22,7 +23,7 @@ def get_slice_demo_dataset():
     control_frequency = 50
     demos = []
     # 仔细查看 Bigym 的源代码和数据集构造后, 设置以下配置, 现在, 只要把 StackBlocks 改成期望任务就行!
-    for cls in [StackBlocks]:
+    for cls in [DishwasherClose]:
         env = cls(
             action_mode=JointPositionActionMode(
                 floating_base=True,
@@ -60,19 +61,23 @@ def get_slice_demo_dataset():
         )
         for t in range(1, len(demo.timesteps)):
             pro = np.concatenate(
-                [demo.timesteps[t - 1].observation['proprioception'],
-                 demo.timesteps[t - 1].observation['proprioception_floating_base'],
-                 demo.timesteps[t - 1].observation['proprioception_floating_base_actions'],
-                 demo.timesteps[t - 1].observation['proprioception_grippers']]
+                [
+                    demo.timesteps[t - 1].observation['proprioception'],
+                    demo.timesteps[t - 1].observation['proprioception_floating_base'],
+                    demo.timesteps[t - 1].observation['proprioception_floating_base_actions'],
+                    demo.timesteps[t - 1].observation['proprioception_grippers']
+                ]
             )
             obs = demo.timesteps[t - 1].visual_observations["rgb_head"]
             action = demo.timesteps[t - 1].info["demo_action"]
             reward = demo.timesteps[t - 1].reward
             next_pro = np.concatenate(
-                [demo.timesteps[t].observation['proprioception'],
-                 demo.timesteps[t].observation['proprioception_floating_base'],
-                 demo.timesteps[t].observation['proprioception_floating_base_actions'],
-                 demo.timesteps[t].observation['proprioception_grippers']]
+                [
+                    demo.timesteps[t].observation['proprioception'],
+                    demo.timesteps[t].observation['proprioception_floating_base'],
+                    demo.timesteps[t].observation['proprioception_floating_base_actions'],
+                    demo.timesteps[t].observation['proprioception_grippers']
+                ]
             )
             next_obs = demo.timesteps[t].visual_observations["rgb_head"]
             done = demo.timesteps[t].termination or demo.timesteps[t].truncation
@@ -172,7 +177,7 @@ class CustomDataset(Dataset):
     def __getitem__(self, idx):
         # 从数据集中获取一张图片
         input_image = PIL.Image.fromarray(
-            self.image_data[idx].transpose(1, 2, 0).astype(np.uint8)
+            self.image_data[idx].reshape(84, 84, 3).astype(np.uint8)
         )  # 转换为 HWC 格式，并转为 uint8 类型
         input_propr = self.proprioception_data[idx]
         pred_act_seq = self.action_seq[idx]
@@ -191,4 +196,18 @@ transform = transforms.Compose([
     # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# print(get_slice_demo_dataset())
+# class Arguments:
+#     context_length = 50
+#     scale = 150
+#     train_split = 0.8
+#
+# args = Arguments()
+#
+# data, _ = get_dataset(args)
+# dataset = CustomDataset(data, transform)
+# image = dataset.__getitem__(2)[0]
+#
+# import matplotlib.pyplot as plt
+# plt.figure()
+# plt.imshow(image.reshape(84, 84, 3))
+# plt.show()

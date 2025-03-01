@@ -133,7 +133,12 @@ class ActionChunkTransformer(nn.Module):
         # =========> ACT 编码器网络部分
         # 1. 这里导入 ResNet18, 冻结预训练模型并在模型后面增加线性适应层调整维度映射, 用以获得图像观测的特征向量
         #    参考链接: https://pytorch-cn.readthedocs.io/zh/latest/torchvision/torchvision-models/
-        self.resnet = models.resnet18(pretrained=True)
+        #    从 torchvision 0.13 开始, torchvision 提供一个全新的多权重支持API (Multi-weight support API)
+        #       支持将不同版本的权重参数文件加载到模型中
+        #    参考链接: https://blog.csdn.net/Sihang_Xie/article/details/125646287
+        #    "You can also use `weights=ResNet18_Weights.DEFAULT` to get the most up-to-date weights."
+        # self.resnet = models.resnet18(pretrained=True)  # deprecated
+        self.resnet = models.resnet18(weights=models.ResNet18_Weights.DEFAULT)
         self.resnet = nn.Sequential(*list(self.resnet.children())[:-2])  # 去掉最后的全连接层和池化层
         # 2. 设置特征图映射线性层，用于映射到整个模型的维度 d_model
         self.linear = nn.Linear(512, d_model)  # ResNet18 的输出通道是 512
@@ -230,7 +235,8 @@ class ActionChunkTransformer(nn.Module):
         # =========> ACT 编码器前向传播
         # 使用 ResNet18 提取特征图
         image_t = image_t.reshape(batch_size * seq_len_image, channel, height, width)
-        feature_map = self.resnet(image_t)  # (batch_size * seq_len_image, 512, height // 32, width // 32)
+        with torch.no_grad():  # 强制这里不计算梯度
+            feature_map = self.resnet(image_t)  # (batch_size * seq_len_image, 512, height // 32, width // 32)
         # 展平特征图
         batch_size_m_seq_len_image, channels_512, height_32, width_32 = feature_map.shape
         # (batch_size_m_seq_len_image, height_32*width_32, channels_512)
