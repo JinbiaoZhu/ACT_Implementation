@@ -1,8 +1,8 @@
 # 手撕 ACT 算法并在 Bigym 和 ManiSkill 仿真器训练/验证/测试
 
-![PickCube-v1-1](https://ibb.co/XrRr4M4h)
+![PickCube-v1-1](assets/8_1.gif)
 
-![PickCube-v1-2](https://ibb.co/r2KvpMnB)
+![PickCube-v1-2](assets/14.gif)
 
 ## 1. Why
 
