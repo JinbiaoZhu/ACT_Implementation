@@ -18,15 +18,10 @@ class Attention(nn.Module):
         self.output_dim = output_dim
         self.heads = heads
 
-        self.query_linear = nn.Linear(input_dim, output_dim * heads)
-        self.key_linear = nn.Linear(input_dim, output_dim * heads)
-        self.value_linear = nn.Linear(input_dim, output_dim * heads)
-        self.out_linear = nn.Linear(output_dim * heads, output_dim)
-
-        self.query_linear.apply(weight_init)
-        self.key_linear.apply(weight_init)
-        self.value_linear.apply(weight_init)
-        self.out_linear.apply(weight_init)
+        self.query_linear = nn.Linear(input_dim, output_dim * heads).apply(weight_init)
+        self.key_linear = nn.Linear(input_dim, output_dim * heads).apply(weight_init)
+        self.value_linear = nn.Linear(input_dim, output_dim * heads).apply(weight_init)
+        self.out_linear = nn.Linear(output_dim * heads, output_dim).apply(weight_init)
 
     def forward(self, query, key, value, mask=None):
         """

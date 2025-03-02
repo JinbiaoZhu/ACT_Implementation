@@ -59,6 +59,12 @@ def get_demo_dataset(args):
                     ], axis=0
                 )
             obs = single_obs_traj["sensor_data"]["base_camera"]["rgb"][t - 1]
+
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # plt.imshow(obs)
+            # plt.show()
+
             action = single_act_traj[t - 1]
             is_grasped = np.array([1]) if single_obs_traj["extra"]["is_grasped"][t] else np.array([0])
             if args.with_goal:
@@ -195,7 +201,7 @@ validation_transform = transforms.Compose([
 
 if __name__ == "__main__":
     class Args:
-        demo_path = "/home/zjb/.maniskill/demos/StackCube-v1/motionplanning/trajectory.h5"
+        demo_path = "/home/zjb/.maniskill/demos/PickCube-v1/motionplanning/trajectory.rgb.pd_ee_delta_pos.physx_cpu.h5"
         num_queries = 2
         scale = 150  # 每条轨迹中采样的数据样本条数
         train_split = 0.8  # 训/验比是 9:1 且直接在仿真环境中部署做测试

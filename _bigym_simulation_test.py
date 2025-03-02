@@ -11,6 +11,8 @@ from bigym.envs.manipulation import StackBlocks
 from bigym.envs.dishwasher import DishwasherClose
 from bigym.envs.pick_and_place import PickBox
 
+from _bigym_dataset import transform
+
 
 def test_in_simulation(model, args):
     control_frequency = 50  # 这个不是超参数一般不改变
@@ -55,9 +57,10 @@ def test_in_simulation(model, args):
                         observation['proprioception_grippers']
                     ]  # np.ndarray (66,)
                 )
-                input_image = torch.from_numpy(input_image).unsqueeze(0).unsqueeze(0).to(
-                    dtype=torch.float32, device=args.device
-                )
+
+                input_image = transform(
+                    input_image.transpose(1, 2, 0)
+                ).unsqueeze(0).unsqueeze(0).to(device=args.device)
                 input_proprio = torch.from_numpy(input_proprio).unsqueeze(0).unsqueeze(0).to(
                     dtype=torch.float32, device=args.device
                 )

@@ -69,6 +69,14 @@ def get_slice_demo_dataset():
                 ]
             )
             obs = demo.timesteps[t - 1].visual_observations["rgb_head"]
+
+            # import matplotlib.pyplot as plt
+            # plt.figure()
+            # plt.imshow(obs.transpose(1, 2, 0))
+            # # plt.imshow(obs.reshape(84, 84, 3))
+            # plt.show()
+
+
             action = demo.timesteps[t - 1].info["demo_action"]
             reward = demo.timesteps[t - 1].reward
             next_pro = np.concatenate(
@@ -176,9 +184,8 @@ class CustomDataset(Dataset):
 
     def __getitem__(self, idx):
         # 从数据集中获取一张图片
-        input_image = PIL.Image.fromarray(
-            self.image_data[idx].reshape(84, 84, 3).astype(np.uint8)
-        )  # 转换为 HWC 格式，并转为 uint8 类型
+        input_image = self.image_data[idx]
+        input_image = input_image.transpose(1, 2, 0)
         input_propr = self.proprioception_data[idx]
         pred_act_seq = self.action_seq[idx]
         pad_length = self.pad_length[idx]
@@ -190,24 +197,21 @@ class CustomDataset(Dataset):
 
 
 transform = transforms.Compose([
-    # transforms.Resize(256),
-    # transforms.CenterCrop(224),
     transforms.ToTensor(),
-    # transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 ])
 
-# class Arguments:
-#     context_length = 50
-#     scale = 150
-#     train_split = 0.8
-#
-# args = Arguments()
-#
-# data, _ = get_dataset(args)
-# dataset = CustomDataset(data, transform)
-# image = dataset.__getitem__(2)[0]
-#
-# import matplotlib.pyplot as plt
-# plt.figure()
-# plt.imshow(image.reshape(84, 84, 3))
-# plt.show()
+
+if __name__ == "__main__":
+    class Arguments:
+        context_length = 50
+        scale = 150
+        train_split = 0.8
+
+    args = Arguments()
+
+    data, _ = get_dataset(args)
+    dataset = CustomDataset(data, transform)
+    image = dataset.__getitem__(2)[0]
+
+

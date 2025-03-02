@@ -15,11 +15,9 @@ class FeedForwardNetwork(nn.Module):
         super(FeedForwardNetwork, self).__init__()
 
         # 第一层线性变换 (input_dim -> hidden_dim)
-        self.fc1 = nn.Linear(input_dim, hidden_dim)
-        self.fc1.apply(weight_init)
+        self.fc1 = nn.Linear(input_dim, hidden_dim).apply(weight_init)
         # 第二层线性变换 (hidden_dim -> output_dim)
-        self.fc2 = nn.Linear(hidden_dim, output_dim)
-        self.fc2.apply(weight_init)
+        self.fc2 = nn.Linear(hidden_dim, output_dim).apply(weight_init)
         # 激活函数
         self.relu = nn.ReLU()
         # Dropout 层，防止过拟合

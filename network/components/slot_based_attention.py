@@ -78,10 +78,10 @@ class SlotAttention(nn.Module):
         return slots
 
 
-if __name__ == "__main__":
-    net = SlotAttention(num_slots=3, dim=512)
-
-    batch_size, seq_len_image, height_32, width_32, d_model = 32, 4, 8, 8, 512
-    input_tensor = torch.rand((batch_size, seq_len_image * height_32 * width_32, d_model))
-    return_slots = net(input_tensor)
-    print(return_slots.shape)
+# if __name__ == "__main__":
+#     net = SlotAttention(num_slots=3, dim=512)
+#
+#     batch_size, seq_len_image, height_32, width_32, d_model = 32, 4, 8, 8, 512
+#     input_tensor = torch.rand((batch_size, seq_len_image * height_32 * width_32, d_model))
+#     return_slots = net(input_tensor)
+#     print(return_slots.shape)

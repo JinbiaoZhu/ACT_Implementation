@@ -90,8 +90,12 @@ if __name__ == "__main__":
         action_seq_loss = sum(
             [F.l1_loss(pred_act_seq_truncated[i], action_seq_truncated[i]) for i in range(current_batch_size)]
         ) / current_batch_size
+
+        # 额外增加一个损失函数项, 就是优化 kl 散度, 让 kl 散度下降但是不能过于下降 (小于 1e-5 会产生不好的效果)
+        kl_loss = F.l1_loss(z_kl, torch.tensor(3e-4).to(dtype=act_config.dtype, device=act_config.device))
+
         optimizer.zero_grad()
-        (action_seq_loss + act_config.kl_coefficient * z_kl).backward()
+        (action_seq_loss + act_config.kl_coefficient * kl_loss).backward()
         optimizer.step()
 
         wandb_logger.log(

@@ -18,12 +18,11 @@ def test_in_simulation(model, args):
         num_envs=1,
         obs_mode="rgb",  # 用 rgb 观测模式以便获得图像
         control_mode="pd_ee_delta_pos",  # 控制模式应该和数据集一致 (查看 json 文件)
-        render_mode="rgb_array"
+        render_mode="human"  # 如果 render 是 True 的话, 录制视频则用 "rgb_array"
     )
     # 因为数据集里面的演示数据都是 50-100 步之间, 但是默认初始环境是 50 步, 所以这边调大一些
-    # env.max_episode_steps = 100
     if args.record_video:
-        env = RecordEpisode(env, # output_dir="videos", save_trajectory=True, trajectory_name="trajectory", save_video=True, video_fps=30
+        env = RecordEpisode(env,
                             output_dir=args.record_video_path,
                             save_trajectory=True,
                             trajectory_name=f"{args.exp_task}-simulation-test",
@@ -37,7 +36,6 @@ def test_in_simulation(model, args):
 
         actually_action = env.action_space.sample()
         observation, _, _, _, info = env.step(actually_action)
-
 
         reward_this_episode, step_this_episode = 0, 0
         while True:
@@ -57,14 +55,9 @@ def test_in_simulation(model, args):
                         observation["agent"]["qvel"],
                         observation["extra"]["tcp_pose"],
                         np.array([1]) if observation["extra"]["is_grasped"] else np.array([0]),
-                ], 1)
+                    ], 1)
 
             input_image = observation["sensor_data"]["base_camera"]["rgb"].numpy().reshape((128, 128, 3))
-
-            # import matplotlib.pyplot as plt
-            # plt.figure()
-            # plt.imshow(input_image)
-            # plt.show()
 
             input_image = validation_transform(input_image)
             input_image = input_image.unsqueeze(0).unsqueeze(0).to(device=args.device)
@@ -77,8 +70,6 @@ def test_in_simulation(model, args):
 
             pred_act_seq = pred_act_seq.squeeze(0).cpu().numpy()  # (chunk_size, action_dim)
             actually_action = pred_act_seq[0]
-            # print(actually_action)
-            # actually_action = np.clip(actually_action, a_min=env.action_space.low, a_max=env.action_space.high)
 
             observation, reward, terminate, truncation, info = env.step(actually_action)
 

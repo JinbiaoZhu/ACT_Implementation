@@ -8,8 +8,8 @@ import numpy as np
 
 from configs.ACT_slot_maniskill_config import Arguments
 from network.ACT_slot import SlotBasedActionChunkTransformer
-from _maniskill_dataset import get_dataset, CustomDataset, transform
-from tools import repeater, get_config_dict, make_eval_envs
+from _maniskill_dataset import get_dataset, CustomDataset, training_transform, validation_transform
+from tools import repeater, get_config_dict
 from logger import WandbLogger
 from _maniskill_simulation_test import test_in_simulation
 
