@@ -206,7 +206,13 @@ class ActionChunkTransformer(nn.Module):
             # action sequence
             action_chunk_t_tk = action_chunk_t_tk.reshape(batch_size * chunk_size, -1)
             action_chunk_t_tk = self.action_seq_proj(action_chunk_t_tk)
-            action_chunk_t_tk = action_chunk_t_tk.reshape(batch_size, chunk_size, -1)  # (batch_size, k, d_model)
+            # (batch_size, chunk_size, d_model)
+            action_chunk_t_tk = action_chunk_t_tk.reshape(batch_size, chunk_size, -1)
+
+            # add action sequence with position embedding
+            # 获取 1 维度正弦位置编码 (batch_size, chunk_size, d_model)
+            action_chunk_pos_emb = self.position_embedding_1d(chunk_size).unsqueeze(0).repeat(batch_size, 1, 1).to(self.device)
+            action_chunk_t_tk += action_chunk_pos_emb
 
             # 合并 the [CLS] token / proprioception 和 action sequence, (batch_size, k+2, d_model)
             representation_encoder_input = torch.concat([cls_token, proprioception_t, action_chunk_t_tk], dim=1)
