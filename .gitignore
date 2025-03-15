@@ -184,8 +184,12 @@ fabric.properties
 # idea folder, uncomment if you don't need it
 # .idea
 
-wandb/
 ckpts/
+runs/
+videos/
+wandb/
+
+
 Geely_project/
 /_my_project_train.py
 /configs/ACT_geely_config.py
