@@ -209,8 +209,8 @@ if __name__ == "__main__":
                 writer.add_scalar(f"validation/weighted_sum_loss", total_loss, global_step)
                 writer.add_scalar(f"validation/kl_divergence", total_kld, global_step)
 
-        # 根据 args 规定的步数进行模型测试集评估
-        if global_step % configs["test_frequency"] == 0:
+        # 根据 args 规定的步数进行模型测试集评估, 第 0 步也就是最开始的时候不进行仿真器测试
+        if (global_step > 0) and (global_step % configs["test_frequency"]) == 0:
             model.eval()  # 进入测试模式
             test_result = test_in_simulation(
                 model=model,

@@ -29,10 +29,10 @@ seed: 42  # 随机数种子
 torch_deterministic: true
 cuda: true
 batch_size: 64
-total_iters: 50000  # 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
-eval_frequency: 1000  # 把模型放到仿真环境的评估的频率
+total_iters: 100000  # 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
+eval_frequency: 5000  # 把模型放到仿真环境的评估的频率
 log_frequency: 1  # 损失函数数值记录的频率, 1 表示每次梯度下降都记录
-save_frequency: 1000  # 模型保存的频率
+save_frequency: 10000  # 模型保存的频率
 num_eval_envs: 10  # 仿真器评估环境中的并行环境数
 num_eval_episodes: 10  # 仿真器中每个并行环境跑了多少 episodes
 capture_video: true  # 录制视频
@@ -44,7 +44,7 @@ kl_weight: 1  # kl 散度做梯度下降的优先级
 # ==========> 数据集
 dataset:
   path: "/home/zjb/.maniskill/demos/PickCube-v1/motionplanning/trajectory.rgb.pd_ee_delta_pos.physx_cpu.h5"
-  num_traj: 300  # 从数据集中获得演示轨迹的数量
+  num_traj: 200  # 从数据集中获得演示轨迹的数量
   control_mode: "pd_ee_delta_pos"
   # 控制模式用于设置将模型直接放置于仿真环境的环境类型
   # 控制模型要与模仿学习数据集内设定的控制模式一致!
