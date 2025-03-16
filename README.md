@@ -12,7 +12,7 @@
 
 ### Q: 为什么选择 Bigym ？
 
-这个仿真环境建模了人形机器人 H1 和一些交互任务，且仿真环境也提供了很多人类采集的数据（尽管目前发现只有 4 个任务具有 pixel-observation 的，但是还是很有用的）。Bigym 论文中对 ACT 做了测评，可以通过论文的数值进行对标自己的代码。同时这个 Bigym 也被 2024 年的 CoRL 会议接受了。
+这个仿真环境建模了人形机器人 H1 和一些交互任务，且仿真环境也提供了很多人类采集的数据。Bigym 论文中对 ACT 做了测评，可以通过论文的数值进行对标自己的代码。同时这个 Bigym 也被 2024 年的 CoRL 会议接受了。
 
 ### Q: 为什么选择 ManiSkill ？
 
@@ -42,16 +42,16 @@ conda create -n rl310 python=3.10
 
 进入 ManiSkill 的技术文档的[安装教程](https://maniskill.readthedocs.io/en/latest/user_guide/getting_started/installation.html)中安装即可。
 
-### BigymACT 安装
+### ACT_Implementation 安装
 
 ```commandline
 cd ~
 ```
 ```commandline
-git clone https://github.com/JinbiaoZhu/ACT_Bigym.git
+git clone https://github.com/JinbiaoZhu/ACT_Implementation.git
 ```
 ```commandline
-cd ACT_Bigym
+cd ACT_Implementation
 ```
 ```commandline
 pip install -r requirements.txt
@@ -64,35 +64,50 @@ mkdir ./videos
 创建完毕后，就可以跑代码了。如果想使用 Bigym 仿真器训练 ACT ，使用以下命令：
 
 ```commandline
-python _bigym_train.py
+python ACT_for_bigym.py
 ```
 如果使用 ManiSkill 仿真器训练 ACT ，使用以下命令：
 
-```
-python _maniskill_train.py
+```commandline
+python ACT_for_Maniskill.py
 ```
 
-关于实验、模型和算法超参数等都可以在 ```./configs/ACT_bigym_config.py``` 和 ```./configs/ACT_maniskill_config.py``` 中进行修改。
+关于实验、模型和算法超参数等都可以在 ```./configs/ACT_bigym_config.yaml``` 和 ```./configs/ACT_maniskill_config.yaml``` 中进行修改。
 
 > 注意：本项目使用 Wandb 作为训练过程记录器，常规 Wandb 使用需要联网，且需要密钥，请事先准备。
 
 # 4. 一些细节
 
- 1. 数据集用类似 RL 的 replay buffer 收集的，但是**实际项目**或者**真机实验**应该换成其他方式。
- 2. 在 ```env/make_bigym_envs.py``` 的 ```test_in_simulation``` 函数中，我观察到 ```env.reset()``` 获得的本体数据和图像观测很奇怪，都是 0 ？但是直接将 0 作为输入模型还是可以跑的。
- 3. ```step_this_episode >= 999``` 的 999 是自己设置的，因为不成功的情况下机器人会一直奇怪的运动着，设置 999 相当于提前截断了，比较省时间。
- 4. 设置 ```[CLS]``` token, 变换成维度是 (1, 1, 1) 的张量, 并构建一个可学习的网络, 将维度 (1, 1, 1) 映射到 (1, 1, d_model) ，还有一种写法是直接将 ```[CLS]``` token 初始化成成维度是 (1, 1, d_model) 的张量, 但是这样写似乎不够直观...
- 5. 网络权重设置如下。我发现按照原始论文中的编码器和解码器的堆叠数量损失函数后期下降很难，考虑到我这里设置的图像输入是单视角 RGB 而不是原始论文中的多视角，且每张图片的大小是 (3, 84, 84) 或者 (3, 128, 128) 分别对于 Bigym 和 Maniskill 而言，而不是实际相机的 (3, 640, 480) ，因此思考合理降低编码器解码器的堆叠数量可以更好拟合监督学习的 scaling law 。
- 6. 超参数设置如下。原本按照论文的学习率是 1e-5 但是根据自己之前的经验来看似乎 1e-4 到 1e-5 的余弦式下降更好一些。
- 7. 增加了槽模型 (slot-based attention) 跟普通的自注意力模型相似，但是增强了物体的表征学习能力，因此增加到了 ResNet 后面做进一步的特征提取。注意到当 ResNet 编码后的 ```seq_len_image * height_32 * width_32``` 远远大于 ```num_slots``` 时候，槽模型可以起到降低维度的作用。
+## 4.1 数据集
+
+  1. 数据集用类似 RL 的 replay buffer 收集的，且**实际项目**或者**真机实验**也可以使用类似的数据结构。
+  2. 由于 ACT 算法是未来多个时刻的动作序列做预测，那么在数据集拆分中容易出现溢出情况，也就是：当前数据集样本点索引 + 动作序列长度 > 整个数据集的最大索引。解决方式是对不同的动作类型进行不同数值的填充。如果任务环境/数据集类型是绝对动作值，那么最后填充数据就是数据集最后一个动作向量的复制；如果任务环境/数据集类型是相对动作值（动作增量），那么最后填充数据就是 0 动作向量的复制。
+  3. ManiSkill 的任务的数据集是根据 ManiSkill 自己的开源框架移植修改而成：[原始代码](https://github.com/haosulab/ManiSkill/blob/main/examples/baselines/act/act/utils.py)没有对 image-based 的数据集做处理，自己阅读源代码进行了修改。Bigym 是自己设计 replay buffer 收集数据的。
+
+## 4.2 网络结构
+
+1. 设置 ```[CLS]``` token, 原本的做法是：变换成维度是 (1, 1, 1) 的张量, 并构建一个可学习线性层的网络, 将维度 (1, 1, 1) 映射到 (1, 1, d_model) ；还有一种写法是直接将 ```[CLS]``` token 初始化成成维度是 (1, 1, d_model) 的张量；还有另一种写法是使用 `nn.Embedding()` 去初始化这个 ```[CLS]``` token 并使用其 `.weight` 权重来操作。
+2. ACT 的网络结构包含三部分：表征编码器、ACT 编码器和 ACT 解码器。其中，表征编码器的编码器层数是一样的。输入至 ACT 网络的数据结构是 (seq_len, batch_size, d_model) ，我之前的写法是 (batch_size, seq_len, d_model) ，然后根据 seq_len 索引想要的位置的张量即可。
+3. 网络里面比较重要的是图像处理。ACT 使用的是 ResNet18 模块，这个模块可以将 (batch_size, channels, height, width) 的图像变换成 (batch_size, 512, height // 32, width // 32) ，**注意：在变换完后再进行位置编码！！！**也就是位置编码的维度是 (1, 512, height // 32, width // 32) ，相加时依靠广播机制实现。
+4. 网络权重设置如下。我发现按照原始论文中的编码器和解码器的堆叠数量损失函数后期下降很难，考虑到我这里设置的图像输入是单视角 RGB 而不是原始论文中的多视角，且每张图片的大小是 (3, 84, 84) 或者 (3, 128, 128) 分别对于 Bigym 和 Maniskill 而言，而不是实际相机的 (3, 640, 480) ，因此思考合理降低编码器解码器的堆叠数量可以更好拟合监督学习的 scaling law 。
+5. 重参数化采样。原本的重参数化采样是 $z = \mu + \sigma \cdot \epsilon$ 其中 $\epsilon$ 是标准正态分布采样得到的。但是看到一些代码是， $\epsilon$ 确实用标准正态分布采样，但是设置成可训练参数，可以随着训练过程进行变化。
+
+## 4.3 训练和测试
+
+1. 在 ```env/make_bigym_envs.py``` 的 ```test_in_simulation``` 函数中，我观察到 ```env.reset()``` 获得的本体数据和图像观测很奇怪，都是 0 ？但是直接将 0 作为输入模型还是可以跑的。
+
+  2. ```step_this_episode >= 999``` 的 999 是自己设置的，因为不成功的情况下机器人会一直奇怪的运动着，设置 999 相当于提前截断了，比较省时间。
+  3. 超参数设置如下。原本按照论文的学习率是 1e-5 但是根据自己之前的经验来看似乎 1e-4 到 1e-5 的余弦式下降或者根据训练步数直接下降都更好一些。
 
 # 5. 实验效果
 
-我把一些跑的结果记录到了 Wandb 的项目中，[ Bigym 效果](https://api.wandb.ai/links/jbzhu1999/synai50l)和[ Maniskill 效果](https://wandb.ai/jbzhu1999/Maniskill-ACT-Implementation/overview)。
+我把一些跑的结果记录到了 Wandb 的项目中，[ Bigym 效果](https://wandb.ai/jbzhu1999/New-ACT-Bigym/overview)和[ Maniskill 效果](https://wandb.ai/jbzhu1999/New-ACT-Maniskill/overview)。
 
 欢迎师弟师妹 clone 这个包然后魔改代码看看在其他任务（甚至非 Bigym / Maniskill 环境上也可以尝试跑跑哦）是否有更好的效果，加油。 
 
 # 6. 施工报告
+
+====> 20250316 中午：修改了 Readme.md 文件。
 
 ====> 20250315 晚上：重大更新！！！修改了网络结构、数据集索引等等很多内容！
 

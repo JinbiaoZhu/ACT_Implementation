@@ -44,7 +44,7 @@ kl_weight: 1  # kl 散度做梯度下降的优先级
 # ==========> 数据集
 dataset:
   path: "/home/zjb/.maniskill/demos/PickCube-v1/motionplanning/trajectory.rgb.pd_ee_delta_pos.physx_cpu.h5"
-  num_traj: 200  # 从数据集中获得演示轨迹的数量
+  num_traj: 300  # 从数据集中获得演示轨迹的数量
   control_mode: "pd_ee_delta_pos"
   # 控制模式用于设置将模型直接放置于仿真环境的环境类型
   # 控制模型要与模仿学习数据集内设定的控制模式一致!
