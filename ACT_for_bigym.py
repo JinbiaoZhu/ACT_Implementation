@@ -9,13 +9,12 @@ from torch import optim
 from torch.utils.tensorboard import SummaryWriter
 from tqdm import tqdm
 import torch
-from torch.utils.data import DataLoader
 import torch.nn.functional as F
 import numpy as np
+import wandb
 
-from network.ACT import ActionChunkingTransformer
-from datasets.bigym_datasets import get_dataset, CustomDataset, transform
-from tools import repeater
+from network.ACT_bigym import ActionChunkingTransformer
+from datasets.bigym_datasets import simple_env_and_dataloader
 from env.make_bigym_envs import test_in_simulation
 from utils import kl_divergence, save_ckpt
 
@@ -53,8 +52,6 @@ if __name__ == "__main__":
 
     # ==========> 训练记录器: 本地用 Tensorboard, 云端用 Wandb
     if configs["wandb"]["need"]:
-        import wandb
-
         config = configs
         wandb.init(
             project=configs["wandb"]["project_name"],
@@ -69,9 +66,22 @@ if __name__ == "__main__":
         "|param|value|\n|-|-|\n%s" % ("\n".join([f"|{key}|{value}|" for key, value in configs.items()])),
     )
 
+    # ==========> 初始化测试环境和数据加载器
+    env, dataloader = simple_env_and_dataloader(
+        env_id=configs["envs"]["env_id"],
+        frame_stack=configs["frame_stack"],
+        normalize_low_dim_obs=configs["normalize_low_dim_obs"],
+        render_mode="human" if configs["render"] else "rgb_array",
+        scale=configs["scale"],
+        demo_storage_path=configs["demo_storage_path"],
+        batch_size=configs["batch_size"],
+        action_seq_len=configs["chunk_size"]
+    )
+
     # ==========> 填充参数文件
-    configs["d_proprioception"] = 66
-    configs["d_action"] = 15
+    configs["d_proprioception"] = env.low_dim_observation_spec().shape[0] // configs["frame_stack"]
+    configs["d_action"] = env.action_spec().shape[0]
+    configs["video_path"] += configs["envs"]["env_id"]
     print(f"d_proprioception {configs['d_proprioception']}, d_action {configs['d_action']}")
 
     # ==========> 模型初始化
@@ -85,6 +95,7 @@ if __name__ == "__main__":
         n_representation_encoder_layers=configs["n_representation_encoder_layers"],
         n_encoder_layers=configs["n_encoder_layers"],
         n_decoder_layers=configs["n_decoder_layers"],
+        n_frame_stack=configs["frame_stack"],
         chunk_size=configs["chunk_size"],
         resnet_name=configs["resnet_name"],
         return_interm_layers=configs["return_interm_layers"],
@@ -93,15 +104,6 @@ if __name__ == "__main__":
         activation=configs["activation"],
         normalize_before=configs["normalize_before"]
     ).to(dtype=dtype, device=device)  # 可能用 torch.bfloat16 这样的数据类型
-
-    # 数据集
-    training_set, valid_set = get_dataset(configs)
-    training_dataset = CustomDataset(training_set, transform)
-    training_dataloader = DataLoader(training_dataset, batch_size=configs["batch_size"], shuffle=True)
-    validation_dataset = CustomDataset(valid_set, transform)
-    validation_dataloader = DataLoader(validation_dataset, batch_size=configs["batch_size"], shuffle=True)
-    # 优化训练的 DataLoader 便于更好的训练
-    training_dataloader = repeater(training_dataloader)
 
     # ==========> 优化器设置
     param_dicts = [
@@ -121,21 +123,16 @@ if __name__ == "__main__":
     lr_scheduler = optim.lr_scheduler.StepLR(optimizer, lr_drop)
 
     # 开始训练进程
-    for global_step in tqdm(range(configs["total_iters"])):
+    for global_step, batch in tqdm(enumerate(dataloader)):
 
         # 训练模式
         model.train()
 
         # 从 batch 数据中提取: 输入图片/输入本体数据/标签动作序列
-        # 本体数据 "state" (batch_size, d_proprioception)
-        # 动作数据 "actions" (batch_size, chunk_size, d_action)
-        # 图片数据 "rgb" (batch_size, channel, height, width) ==> 因为是单视角, 所以需要额外增加一个维度
         # 把提取到的数据全部放到指定显卡中
-        batch = next(training_dataloader)
-        input_image, input_proprio, action_seq, pad_length = batch
-        input_image = input_image.unsqueeze(1).to(device=device, dtype=dtype)
-        input_proprio = input_proprio.to(device=device, dtype=dtype)
-        action_seq = action_seq.to(device=device, dtype=dtype)
+        input_image = batch[0].to(device)  # (batch_size, num_views, channels * frame_stack, height, width)
+        input_proprio = batch[1].to(device)  # (batch_size, d_proprioception * frame_stack)
+        action_seq = batch[2].to(device)  # (batch_size, action_seq_len, d_action)
 
         current_batch_size = input_image.shape[0]
 
@@ -144,7 +141,7 @@ if __name__ == "__main__":
         # 前向传播
         input_obs = {
             "state": input_proprio,
-            "rgb": input_image,
+            "rgb": input_image / 255.0,
         }
         input_action = action_seq  # (batch_size, chunk_size, act_dim)
         a_hat, (mu, logvar) = model(input_obs, input_action)
@@ -158,8 +155,10 @@ if __name__ == "__main__":
         loss_dict = dict()
         loss_dict['l1'] = l1
         loss_dict['kl'] = total_kld[0]
-        loss_dict['loss'] = loss_dict['l1'] + loss_dict['kl'] * configs["kl_weight"]
+        loss_dict['loss'] = l1 + total_kld[0] * configs["kl_weight"]
         total_loss = loss_dict['loss']  # total_loss = l1 + kl * self.kl_weight
+
+        # print(f"{l1}, {total_kld[0]}")
 
         # 反向传播
         optimizer.zero_grad()
@@ -172,51 +171,48 @@ if __name__ == "__main__":
 
         if global_step % configs["eval_frequency"] == 0:
             model.eval()  # 进入验证模式
-            eval_total_loss = 0
-            for batch in validation_dataloader:
-                # 从 batch 数据中提取: 输入图片/输入本体数据/标签动作序列
-                # 输入图片/输入本体数据扩充一维度, 与动作序列对齐, 表示是一个 "token"
-                # 把提取到的数据全部放到指定显卡中
-                input_image, input_proprio, action_seq, pad_length = batch
-                input_image = input_image.unsqueeze(1).to(device=device, dtype=dtype)
-                input_proprio = input_proprio.to(device=device, dtype=dtype)
-                action_seq = action_seq.to(device=device, dtype=dtype)
 
-                current_batch_size = input_image.shape[0]
+            # 从 batch 数据中提取: 输入图片/输入本体数据/标签动作序列
+            # 把提取到的数据全部放到指定显卡中
+            input_image = batch[0].to(device)  # (batch_size, num_views, channels * frame_stack, height, width)
+            input_proprio = batch[1].to(device)  # (batch_size, d_proprioception * frame_stack)
+            action_seq = batch[2].to(device)  # (batch_size, action_seq_len, d_action)
 
-                # 将输入图片/输入本体数据送进 ACT 网络中,
-                # 得到预测结果: 预测动作序列
-                # 前向传播
-                input_obs = {
-                    "state": input_proprio,
-                    "rgb": input_image,
-                }
-                input_action = action_seq  # (batch_size, chunk_size, act_dim)
-                a_hat, (mu, logvar) = model(input_obs, input_action)
+            current_batch_size = input_image.shape[0]
 
-                # 计算损失
-                # 计算不同级别的 kl 散度
-                total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
-                # 因为 F.l1_loss 是元素级绝对值计算, 因此交换数据和标签的位置不会影响结果, 损失数值形状和 a_hat 一样
-                all_l1 = F.l1_loss(action_seq, a_hat, reduction='none')
-                l1 = all_l1.mean()
-                loss_dict = dict()
-                loss_dict['l1'] = l1
-                loss_dict['kl'] = total_kld[0]
-                loss_dict['loss'] = loss_dict['l1'] + loss_dict['kl'] * configs["kl_weight"]
-                total_loss = loss_dict['loss']  # total_loss = l1 + kl * self.kl_weight
+            # 将输入图片/输入本体数据送进 ACT 网络中,
+            # 得到预测结果: 预测动作序列
+            # 前向传播
+            input_obs = {
+                "state": input_proprio,
+                "rgb": input_image / 255.0,
+            }
+            input_action = action_seq  # (batch_size, chunk_size, act_dim)
+            a_hat, (mu, logvar) = model(input_obs, input_action)
 
-                writer.add_scalar(f"validation/weighted_sum_loss", total_loss, global_step)
-                writer.add_scalar(f"validation/kl_divergence", total_kld, global_step)
+            # 计算损失
+            # 计算不同级别的 kl 散度
+            total_kld, dim_wise_kld, mean_kld = kl_divergence(mu, logvar)
+            # 因为 F.l1_loss 是元素级绝对值计算, 因此交换数据和标签的位置不会影响结果, 损失数值形状和 a_hat 一样
+            all_l1 = F.l1_loss(action_seq, a_hat, reduction='none')
+            l1 = all_l1.mean()
+            loss_dict = dict()
+            loss_dict['l1'] = l1
+            loss_dict['kl'] = total_kld[0]
+            loss_dict['loss'] = l1 + total_kld[0] * configs["kl_weight"]
+            total_loss = loss_dict['loss']  # total_loss = l1 + kl * self.kl_weight
 
-        # 根据 args 规定的步数进行模型测试集评估, 第 0 步也就是最开始的时候不进行仿真器测试
+            writer.add_scalar(f"validation/weighted_sum_loss", total_loss, global_step)
+            writer.add_scalar(f"validation/kl_divergence", total_kld, global_step)
+
+        # 根据 args 规定的步数进行模型测试集评估, 第 0 步, 也就是最开始的时候, 不进行仿真器测试
         if (global_step > 0) and (global_step % configs["test_frequency"]) == 0:
-            model.eval()  # 进入测试模式
+            # 进入测试模式
             test_result = test_in_simulation(
                 model=model,
+                env=env,
                 config=configs,
                 device=device,
-                dtype=dtype
             )
             for key, value in test_result.items():
                 writer.add_scalar(f"test/{key}", value, global_step)
@@ -228,4 +224,11 @@ if __name__ == "__main__":
         if configs["save_frequency"] is not None and global_step % configs["save_frequency"] == 0:
             save_ckpt(run_name, model, str(global_step))
 
+        if global_step > configs["total_iters"]:
+            print("训练结束!")
+            break
+
+    # 保存最后的模型和记录数据
+    save_ckpt(run_name, model, "the-last-one")
     writer.close()
+    env.close()

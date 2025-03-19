@@ -2,12 +2,14 @@ exp_name: "ACT-Bigym"
 
 # ==========> 环境信息
 envs:
-  env_id: "MovePlate"
+  env_id: &global "dishwasher_close"  # 每个单词首字母小写, 单词之间用下划线隔开! 否则无法解析出类!
 
 # ==========> 模型信息
-chunk_size: 16
-scale: 150  # 每条轨迹中采样的数据样本条数
-train_split: 0.9  # 训/验比是 9:1 且直接在仿真环境中部署做测试
+chunk_size: 16  # 预测的动作序列长度
+scale: -1  # 从演示数据集中采样的轨迹条数
+frame_stack: 2  # 帧堆叠, 会提升模型效果, 一般设置 2 或者 4
+demo_storage_path: "/media/zjb/extend/zjb/ACT_Implementation/datasets/bigym_src/demos/"  # 存放单步 (timestep) 数据的文件夹
+normalize_low_dim_obs: false  # 是否在训练之前把本体状态 (低维度状态空间) 进行归一化, 这样有助于训练稳定
 d_model: 512
 d_proprioception: ???
 d_action: ???
@@ -29,14 +31,14 @@ return_interm_layers: false
 seed: 42  # 随机数种子
 torch_deterministic: true
 cuda: true
-batch_size: 64
+batch_size: 160
 total_iters: 100000  # 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
 eval_frequency: 10000  # 进行验证集测试的频率
 test_frequency: 10000  # 把模型放到仿真环境的评估的频率
 save_frequency: 10000  # 模型保存的频率
 num_eval_episodes: 10  # 仿真器中每个并行环境跑了多少 episodes
-capture_video: true  # 录制视频
-video_path: "./videos/bigym/MovePlate"
+capture_video: false  # 录制视频
+video_path: "./videos/bigym/"
 lr: 0.0001  # 模型的学习率
 lr_backbone: 0.00001  # 视觉骨干模型的全参微调学习率
 weight_decay: 0.0001  # 权重衰减
