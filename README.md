@@ -4,6 +4,10 @@
 
 <img src="assets/14.gif" width="256" height="auto">
 
+<img src="assets/dishwasher_close.gif" width="256" height="auto">
+
+<img src="assets/drawer_top_open.gif" width="256" height="auto">
+
 ## 1. Why
 
 ### Q: 为什么要手撕这个代码？
