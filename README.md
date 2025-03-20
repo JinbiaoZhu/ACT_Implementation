@@ -6,7 +6,7 @@
 
 <img src="assets/dishwasher_close.gif" width="256" height="auto">
 
-<img src="assets/drawer_top_open.gif" width="256" height="auto">
+<img src="assets/draw_top_open.gif" width="256" height="auto">
 
 ## 1. Why
 
