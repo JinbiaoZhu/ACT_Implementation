@@ -80,6 +80,18 @@ python ACT_for_Maniskill.py
 
 > 注意：本项目使用 Wandb 作为训练过程记录器，常规 Wandb 使用需要联网，且需要密钥，请事先准备。
 
+我把 Bigym 任务的两个权重开源出来了。
+
+> dishwasher close 任务: [这里](https://drive.google.com/file/d/1QrHR99apu_smoYr-bixgk9xDc2bGzpZB/view?usp=drive_link)
+>
+> drawer top open 任务: [这里](https://drive.google.com/file/d/1BL-py7hqHnSBRxVC4ys4qQ-55SHkW_FA/view?usp=drive_link)
+
+通过以下命令可以查看模型的效果。
+
+```commandline
+python make_bigym_envs.py --ckpt_path <checkpoint you stored>
+```
+
 # 4. 一些细节
 
 ## 4.1 数据集
