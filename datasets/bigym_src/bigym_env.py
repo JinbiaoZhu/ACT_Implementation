@@ -1,17 +1,15 @@
-from gymnasium import spaces
-import numpy as np
 from typing import Union, Dict, Any, NamedTuple
 from collections import deque
 
+from gymnasium import spaces
+import numpy as np
 from bigym.bigym_env import BiGymEnv, CONTROL_FREQUENCY_MAX
 from bigym.action_modes import JointPositionActionMode
 from datasets.bigym_src.bigym_utils import TASK_MAP
-
 from bigym.utils.observation_config import ObservationConfig, CameraConfig
 from bigym.action_modes import PelvisDof
 from demonstrations.demo_store import DemoStore
 from demonstrations.utils import Metadata
-
 from dm_env import StepType, specs
 
 

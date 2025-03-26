@@ -6,22 +6,22 @@ envs:
 
 # ==========> 模型信息
 chunk_size: 16  # 预测的动作序列长度
-scale: -1  # 从演示数据集中采样的轨迹条数
+scale: -1  # 从演示数据集中采样的轨迹条数, -1 表示全部载入
 frame_stack: 2  # 帧堆叠, 会提升模型效果, 一般设置 2 或者 4
 demo_storage_path: "/media/zjb/extend/zjb/ACT_Implementation/datasets/bigym_src/demos/"  # 存放单步 (timestep) 数据的文件夹
 normalize_low_dim_obs: false  # 是否在训练之前把本体状态 (低维度状态空间) 进行归一化, 这样有助于训练稳定
-d_model: 512
+d_model: 512  # 模型的维度, 也就是 query/key/value 映射到做注意力的维度
 d_proprioception: ???
-d_action: ???
-d_z_distribution: 32
-d_feedforward: 3200
-n_head: 8
-n_representation_encoder_layers: 2
-n_encoder_layers: 2
-n_decoder_layers: 4
-dropout: 0.1
-activation: "relu"
-normalize_before: false
+d_action: ???  # 本体维度和动作维度跟环境有关, 因此这里不填写, 在后面运行代码时填充
+d_z_distribution: 32  # 表征编码器输出的 z 分布的维度
+d_feedforward: 3200  # FFNN 的维度, 一般是 4*d_model 但是 ACT 原始论文用的是 3200
+n_head: 8  # 分头注意力的头数
+n_representation_encoder_layers: 2  # 表征编码器的层数量
+n_encoder_layers: 2  # ACT 编码器的层数量
+n_decoder_layers: 4  # ACT 解码器的层数量
+dropout: 0.1  # 正则化, 丢弃率
+activation: "relu"  # 默认使用 relu 激活函数, 可选的激活函数包括 relu, gelu 和 glu
+normalize_before: false  # 如果是 true, 则在输入模型前额外做一次正则化
 
 # ==========> 视觉骨干
 resnet_name: resnet18
@@ -31,18 +31,18 @@ return_interm_layers: false
 seed: 42  # 随机数种子
 torch_deterministic: true
 cuda: true
-batch_size: 160
-total_iters: 100000  # 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
-eval_frequency: 10000  # 进行验证集测试的频率
-test_frequency: 10000  # 把模型放到仿真环境的评估的频率
-save_frequency: 10000  # 模型保存的频率
-num_eval_episodes: 10  # 仿真器中每个并行环境跑了多少 episodes
-capture_video: false  # 录制视频
-video_path: "./videos/bigym/"
+batch_size: 160  # 2080 Ti 显卡下设置 160 可行
+total_iters: 50000  # 50000 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
+eval_frequency: 10000  # 10000 进行验证集测试的频率
+test_frequency: 50000  # 10000 把模型放到仿真环境的评估的频率
+save_frequency: 10000  # 10000 模型保存的频率
+num_eval_episodes: 16  # 仿真器中每个并行环境跑了多少 episodes
+video_path: "./videos/bigym/"  # deprecated
 lr: 0.0001  # 模型的学习率
 lr_backbone: 0.00001  # 视觉骨干模型的全参微调学习率
 weight_decay: 0.0001  # 权重衰减
 kl_weight: 1  # kl 散度做梯度下降的优先级
+capture_video: false  # 是否录制视频
 render: false  # 是否在测试时候进行渲染
 
 # ==========> 训练记录器
@@ -52,4 +52,11 @@ wandb:
 
 # ==========> 其他一些参数
 include_depth: false
+
+# ==========> ACT 改进一: 解码器全参微调, 实现任务迁移
+# 原始的模型权重
+origin_ckpt_path: "/media/zjb/extend/zjb/ACT_Implementation/runs/ACT-Bigym-dishwasher_close-42-20250319-1742373243/checkpoints/50000.pt"
+
+# ==========> ACT 改进二: 解码器改成 DDPM 或者 DDIM
+method: "DDIM"  # 可选参数: DDPM, DDIM 和 "no-diffusion"
 

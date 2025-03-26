@@ -18,7 +18,7 @@ def simple_env_and_dataloader(
         env_id,
         frame_stack,
         normalize_low_dim_obs,  # 是否在训练之前把本体状态 (低维度状态空间) 进行归一化, 这样有助于训练稳定
-        render_mode,
+        render_mode,  # 只有 render_mode="human" 才可使用 env.render() 可以渲染, 其余都不能
         scale,  # scale 设置 -1 表示把所有演示轨迹数据集载入进来
         demo_storage_path,
         batch_size,
@@ -27,7 +27,7 @@ def simple_env_and_dataloader(
     """
     原始脚本可以设置很多参数, 但是一部分参数不经常设置, 这些不常设置的参数在每个任务中都是一样的.
     因此编写一个简单的返回测试环境和数据载入器的函数, 这样可以简单一些.
-    :return:
+    :return: 环境的示例 (用于测试) 以及数据集载入器
     """
     # ################################################################
     # 初始化环境, 这个环境可以用于训练模型的实际测试
@@ -113,8 +113,8 @@ if __name__ == "__main__":
     with open(args.config_file_path, 'r', encoding='utf-8') as file:
         configs = yaml.safe_load(file)  # 使用 safe_load 避免潜在的安全风险
 
-    configs["video_path"] += configs["envs"]["env_id"]
-    configs["scale"] = 1
+    configs["video_path"] += configs["envs"]["env_id"]  # deprecated
+    configs["scale"] = -1
 
     env, loader = simple_env_and_dataloader(
         env_id=configs["envs"]["env_id"],
@@ -147,10 +147,6 @@ if __name__ == "__main__":
 
         print(f"number: {e_num}")
         for data, name in zip(batch[0:3], ["rgb", "state", "action_seq"]):
-
-            # if name == "rgb":
-            #     print(data)
-
             print(f"name:{name}\t\tshape:{data.shape}")
 
         pass

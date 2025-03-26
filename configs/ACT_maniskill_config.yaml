@@ -6,19 +6,19 @@ envs:
   max_episode_steps: 100
 
 # ==========> 模型信息
-chunk_size: 10
-d_model: 512
+chunk_size: 10  # 预测的动作序列长度
+d_model: 512  # 模型的维度, 也就是 query/key/value 映射到做注意力的维度
 d_proprioception: ???
-d_action: ???
-d_z_distribution: 32
-d_feedforward: 2048
-n_head: 8
-n_representation_encoder_layers: 3
-n_encoder_layers: 3
-n_decoder_layers: 6
-dropout: 0.1
-activation: "relu"
-normalize_before: false
+d_action: ???  # 本体维度和动作维度跟环境有关, 因此这里不填写, 在后面运行代码时填充
+d_z_distribution: 32  # 表征编码器输出的 z 分布的维度
+d_feedforward: 3200  # FFNN 的维度, 一般是 4*d_model 但是 ACT 原始论文用的是 3200
+n_head: 8  # 分头注意力的头数
+n_representation_encoder_layers: 2  # 表征编码器的层数量
+n_encoder_layers: 2  # ACT 编码器的层数量
+n_decoder_layers: 4  # ACT 解码器的层数量
+dropout: 0.1  # 正则化, 丢弃率
+activation: "relu"  # 默认使用 relu 激活函数, 可选的激活函数包括 relu, gelu 和 glu
+normalize_before: false  # 如果是 true, 则在输入模型前额外做一次正则化
 
 # ==========> 视觉骨干
 resnet_name: resnet18
@@ -28,7 +28,7 @@ return_interm_layers: false
 seed: 42  # 随机数种子
 torch_deterministic: true
 cuda: true
-batch_size: 64
+batch_size: 64  # 2080 Ti 显卡下设置 64 可行
 total_iters: 100000  # 每一个 iter 从数据集中获得一个 batch 信息, 做一次梯度下降
 eval_frequency: 5000  # 把模型放到仿真环境的评估的频率
 log_frequency: 1  # 损失函数数值记录的频率, 1 表示每次梯度下降都记录

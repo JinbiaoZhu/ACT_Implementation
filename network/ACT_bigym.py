@@ -10,15 +10,6 @@ from network.components.transformer_decoder import TransformerDecoderLayer
 from network.components.visual_feature_extractor import VisionBackbone, NestedTensor
 from network.components.tools import weight_init
 
-"""
-Action Chunking Transformer (ACT) 算法的实现.
-
-代码包含三部分:
-
-# 1. 表征编码器部分
-
-"""
-
 
 class ActionChunkingTransformer(nn.Module):
 
